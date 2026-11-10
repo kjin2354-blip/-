@@ -73,6 +73,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     <div class="controls">
       <button class="primary" id="press">Pull clip &amp; press</button>
       <button id="section" aria-pressed="true">Cutaway</button>
+      <button id="threads" aria-pressed="false">Threads</button>
       <button id="powder" aria-pressed="false">Show powder</button>
       <button id="reset">Reset</button>
     </div>
@@ -95,7 +96,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
           <tr><td><span class="sw" style="background:#2b2d32"></span>plunger</td><td>Peg end down, blade tip up.</td></tr>
           <tr><td><span class="sw" style="background:#1b1c1f;border:1px solid #444"></span>head</td><td>Dimpled top on the bed.</td></tr>
           <tr><td><span class="sw" style="background:#ff6a13"></span>safety_clip</td><td>Flat on the bed.</td></tr>
-          <tr><td><span class="sw" style="background:#3d7fe0"></span>washer</td><td>Flat, in TPU. Or buy a 22 × 27 × 1 mm silicone washer.</td></tr>
+          <tr><td><span class="sw" style="background:#55606b"></span>washer</td><td>Flat, in TPU. Or buy a 22 × 27 × 1 mm silicone washer.</td></tr>
         </tbody>
       </table></div>
     </div>
@@ -192,7 +193,8 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     plunger: { mat: mat({ color: 0x2b2d32, roughness: 0.5, metalness: 0.05, envMapIntensity: 0.5 }), parent: moving },
     head: { mat: mat({ color: 0x1b1c1f, roughness: 0.75 }), parent: moving },
     safety_clip: { mat: mat({ color: 0xff6a13, roughness: 0.4, emissive: 0xff3a00, emissiveIntensity: 0.1 }) },
-    washer: { mat: mat({ color: 0x3d7fe0, roughness: 0.7 }) },
+    washer: { mat: mat({ color: 0x55606b, roughness: 0.8 }) },
+    cap_thread: { mat: mat({ color: 0xff6a13, roughness: 0.35, emissive: 0xff3a00, emissiveIntensity: 0.35 }) },  // highlight of the thread inside the body
   };
 
   // foil: fixed ring with a diamond hole + four triangular flaps hinged on the diamond edges
@@ -226,7 +228,8 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   class Helix extends THREE.Curve { constructor(r, lead, turns, a0, z0) { super(); Object.assign(this, { r, lead, turns, a0, z0 }); }
     getPoint(t, v = new THREE.Vector3()) { const a = this.a0 + t * this.turns * Math.PI * 2; return v.set(Math.cos(a) * this.r, Math.sin(a) * this.r, this.z0 + t * this.turns * this.lead); } }
   // PCO 1881: one thread, 2.7 mm lead, 650 deg, starting 1.7 mm below the rim
-  { const turns = 650 / 360; const th = new THREE.Mesh(new THREE.TubeGeometry(new Helix(13.05, 2.7, turns, 0, -1.7 - 2.7 * turns), 120, 0.5, 6), neckMat); th.renderOrder = 3; cad.add(th); }
+  const neckThreadMat = mat({ color: 0x5aa9ff, roughness: 0.3, transparent: true, opacity: 0.25, depthWrite: false });
+  { const turns = 650 / 360; const th = new THREE.Mesh(new THREE.TubeGeometry(new Helix(13.05, 2.7, turns, 0, -1.7 - 2.7 * turns), 160, 0.5, 8), neckThreadMat); th.renderOrder = 3; cad.add(th); }
 
   // geometry comes from the exported STL files, packed as base64 float32 triangle lists
   let loaded = 0;
@@ -247,13 +250,23 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
 
   // ---- interaction ----
   const statusEl = document.getElementById('status');
+  let baseStatus = 'Safety clip on · foil intact';
   const say = (t, live) => { statusEl.textContent = t; statusEl.classList.toggle('live', !!live); };
   let anim = null, done = false;
   const pressBtn = document.getElementById('press');
   pressBtn.addEventListener('click', () => { if (anim || done) return; anim = { t: 0 }; pressBtn.disabled = true; say('Clip off · pressing', true); });
   document.getElementById('section').addEventListener('click', e => { sectionOn = !sectionOn; e.currentTarget.setAttribute('aria-pressed', String(sectionOn)); applyClip(); });
+  // thread close-up: fade the body, highlight cap thread (orange) and bottle thread (blue), zoom in
+  let threadsOn = false, camGoal = null;
+  document.getElementById('threads').addEventListener('click', e => {
+    threadsOn = !threadsOn; e.currentTarget.setAttribute('aria-pressed', String(threadsOn));
+    parts.body.mat.opacity = threadsOn ? 0.1 : 0.3;
+    neckThreadMat.opacity = threadsOn ? 0.9 : 0.25; neckMat.opacity = threadsOn ? 0.12 : 0.25;
+    camGoal = threadsOn ? { y: -3, d: 78 } : { y: 18, d: 185 };
+    if (threadsOn) say('Orange: cap thread · blue: bottle thread (PCO 1881, 1 start, 2.7 mm)', false); else say(baseStatus, false);
+  });
   document.getElementById('powder').addEventListener('click', e => { powder.visible = !powder.visible; e.currentTarget.setAttribute('aria-pressed', String(powder.visible)); });
-  document.getElementById('reset').addEventListener('click', () => { anim = null; done = false; setPress(0, 0); pressBtn.disabled = false; say('Safety clip on · foil intact', false); });
+  document.getElementById('reset').addEventListener('click', () => { anim = null; done = false; setPress(0, 0); pressBtn.disabled = false; baseStatus = 'Safety clip on · foil intact'; if (!threadsOn) say(baseStatus, false); });
 
   const ease = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
   function setPress(clipOut, d) {
@@ -275,7 +288,13 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
       const c = ease(anim.t / 0.8), d = STROKE * ease((anim.t - 0.9) / 1.6);
       setPress(c, d);
       if (anim.t > 1.2 && anim.t < 2.5) say('Blade punctures the centre, then cuts outward', true);
-      if (anim.t >= 2.6) { anim = null; done = true; say('Head on the stop · four flaps open · shake', false); }
+      if (anim.t >= 2.6) { anim = null; done = true; baseStatus = 'Head on the stop · four flaps open · shake'; say(baseStatus, false); }
+    }
+    if (camGoal) {
+      const k = Math.min(1, dt * (reduceMotion ? 30 : 3)), off = camera.position.clone().sub(controls.target);
+      const dy = (camGoal.y - controls.target.y) * k; controls.target.y += dy;
+      off.setLength(off.length() + (camGoal.d - off.length()) * k); camera.position.copy(controls.target).add(off);
+      if (Math.abs(camGoal.y - controls.target.y) < 0.05 && Math.abs(off.length() - camGoal.d) < 0.1) camGoal = null;
     }
     controls.update(); renderer.render(scene, camera); requestAnimationFrame(frame);
   })();

@@ -99,6 +99,25 @@ def revolve(points):
 
 
 # ------------------------------------------------------------------ body ----
+def make_cap_thread():
+    """Internal thread ridge(s) of the cap, in place."""
+    r_base, r_crest = COLLAR_IN + 0.2, NECK_THREAD_ROOT / 2 + THREAD_CLEAR
+    w_base, w_crest = 1.4, 0.8
+    r_mid = (r_base + r_crest) / 2
+    height = THREAD_LEAD * THREAD_TURNS
+    helix = cq.Wire.makeHelix(pitch=THREAD_LEAD, height=height, radius=r_mid)
+    profile = (cq.Workplane("XZ")
+               .polyline([(r_base, -w_base / 2), (r_crest, -w_crest / 2),
+                          (r_crest, w_crest / 2), (r_base, w_base / 2)]).close())
+    ridge = profile.sweep(cq.Workplane().add(helix), isFrenet=True)
+    z0 = -(THREAD_TOP + height)
+    out = None
+    for i in range(THREAD_STARTS):
+        r = ridge.rotate((0, 0, 0), (0, 0, 1), 360 / THREAD_STARTS * i).translate((0, 0, z0))
+        out = r if out is None else out.union(r)
+    return out
+
+
 def make_body():
     seal_out = NECK_BORE / 2 + SEAL_INTERFERENCE
     seal_in = seal_out - 1.0
@@ -123,20 +142,7 @@ def make_body():
     ]
     body = revolve(outline)
 
-    # internal thread ridges
-    r_base, r_crest = COLLAR_IN + 0.2, NECK_THREAD_ROOT / 2 + THREAD_CLEAR
-    w_base, w_crest = 1.4, 0.8
-    r_mid = (r_base + r_crest) / 2
-    height = THREAD_LEAD * THREAD_TURNS
-    helix = cq.Wire.makeHelix(pitch=THREAD_LEAD, height=height, radius=r_mid)
-    profile = (cq.Workplane("XZ")
-               .polyline([(r_base, -w_base / 2), (r_crest, -w_crest / 2),
-                          (r_crest, w_crest / 2), (r_base, w_base / 2)]).close())
-    ridge = profile.sweep(cq.Workplane().add(helix), isFrenet=True)
-    z0 = -(THREAD_TOP + height)
-    for i in range(THREAD_STARTS):
-        body = body.union(ridge.rotate((0, 0, 0), (0, 0, 1), 360 / THREAD_STARTS * i)
-                          .translate((0, 0, z0)))
+    body = body.union(make_cap_thread())
     # pocket for the seal washer, in the face the bottle rim presses against
     if WASHER_T > 0:
         pocket = (cq.Workplane("XY").circle(WASHER_OD / 2 + 0.15).circle(WASHER_ID / 2 - 0.15)
@@ -229,16 +235,18 @@ def main():
         asm.add(wp, name=name, color=cq.Color(*colors[name]))
     asm.save(os.path.join(OUT, "cap_assembly.step"))
 
-    # pack the STLs for viewer.html (web/*.json)
+    # pack the STLs for viewer.html (web/*.json); cap_thread is a highlight, not a print part
     import base64, json, struct
     web = os.path.join(os.path.dirname(OUT), "web")
     os.makedirs(web, exist_ok=True)
-    for name in parts:
+    cq.exporters.export(make_cap_thread(), os.path.join(OUT, "_cap_thread.stl"), tolerance=0.01, angularTolerance=0.1)
+    for name in list(parts) + ["_cap_thread"]:
         d = open(os.path.join(OUT, f"{name}.stl"), "rb").read()
         n = struct.unpack("<I", d[80:84])[0]
         pos = b"".join(d[84 + 50 * i + 12: 84 + 50 * i + 48] for i in range(n))
-        with open(os.path.join(web, f"{name}.json"), "w") as f:
+        with open(os.path.join(web, f"{name.lstrip('_')}.json"), "w") as f:
             json.dump({"name": name, "triangles": n, "positions": base64.b64encode(pos).decode()}, f)
+    os.remove(os.path.join(OUT, "_cap_thread.stl"))
 
     print(f"stroke {STROKE:.1f} mm | cap height {HEAD_Z + HEAD_H + COLLAR_H:.1f} mm "
           f"| chamber Ø{2*CHAMBER_R:.0f} mm | blade X span {2*BLADE_R:.0f} mm")
