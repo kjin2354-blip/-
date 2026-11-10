@@ -28,19 +28,27 @@ CLEARANCE = 0.2
 # Lid press fit into the chamber (radial, + = looser). Resin ~0.05, FDM ~0.15.
 LID_FIT = 0.05
 
-# Bottle neck. Defaults approximate a 28 mm PCO 1881 soda/water finish.
-# MEASURE YOUR BOTTLE with calipers and change these before printing.
-NECK_THREAD_OD = 27.4   # outside diameter across the bottle's threads
-NECK_THREAD_ROOT = 25.1 # diameter at the bottom of the bottle's thread grooves
-NECK_BORE = 21.7        # inside diameter of the neck opening
-THREAD_STARTS = 3       # number of separate thread ridges on the neck (look from the top)
-THREAD_LEAD = 8.1       # how far one ridge rises in one full turn
-THREAD_TURNS = 0.85     # how far around each cap ridge runs (in turns)
+# Bottle neck: PCO 1881 standard (28 mm, used on Dasani and many Coca-Cola bottles).
+# Neck thread: single start, 2.70 mm lead, 650 deg (~1.8 turns), starting 1.70 mm below
+# the rim. The root diameter is provisional; check it against a real bottle.
+NECK_THREAD_OD = 27.40  # outside diameter across the bottle's threads
+NECK_THREAD_ROOT = 24.94  # diameter at the bottom of the bottle's thread grooves
+NECK_BORE = 21.74       # inside diameter of the neck opening
+THREAD_STARTS = 1       # number of separate thread ridges on the neck (look from the top)
+THREAD_LEAD = 2.70      # how far one ridge rises in one full turn
+THREAD_TURNS = 1.5      # how far around the cap's ridge runs (neck has ~1.8 turns)
+THREAD_TOP = 1.2        # cap ridge centre line starts this far below the rim
 THREAD_CLEAR = 0.3      # radial clearance on the threads
+
+# Seal washer between the bottle rim and the cap (silicone or printed TPU).
+# Printed caps rarely seal well plastic-on-plastic. Set WASHER_T = 0 to leave it out.
+WASHER_ID, WASHER_OD = 22.2, 27.0
+WASHER_T = 1.0          # washer thickness
+WASHER_SQUEEZE = 0.3    # how much the washer is compressed when the cap is tight
 
 # Cap body
 WALL = 1.6
-COLLAR_H = 12.0         # how far the cap skirt reaches down the neck
+COLLAR_H = 10.0         # skirt depth: covers the 1881 thread zone (~8 mm below the rim)
 CHAMBER_R = 18.0        # chamber inner radius (36 mm inside)
 CHAMBER_H = 40.0        # floor-land to lid height; ~34 mL of powder space
 OPENING_R = 9.5         # floor opening radius (19 mm). Keep below NECK_BORE/2.
@@ -78,6 +86,7 @@ STOP_TOP = GUIDE_BOTTOM - 0.5            # retention collar sits just under the 
 BORE_R = SHAFT_R + CLEARANCE
 PEG_R, PEG_H = 2.5, 3.0
 
+assert WASHER_T == 0 or WASHER_ID / 2 > NECK_BORE / 2 + SEAL_INTERFERENCE, "washer must sit outside the seal ring"
 assert OPENING_R < NECK_BORE / 2 - 0.5, "floor opening must fit inside the neck bore"
 assert BLADE_R < OPENING_R - 0.3, "blade must pass through the floor opening"
 assert BLADE_TOP < STOP_TOP - 2, "blade and retention collar overlap"
@@ -116,7 +125,7 @@ def make_body():
 
     # internal thread ridges
     r_base, r_crest = COLLAR_IN + 0.2, NECK_THREAD_ROOT / 2 + THREAD_CLEAR
-    w_base, w_crest = 1.6, 0.8
+    w_base, w_crest = 1.4, 0.8
     r_mid = (r_base + r_crest) / 2
     height = THREAD_LEAD * THREAD_TURNS
     helix = cq.Wire.makeHelix(pitch=THREAD_LEAD, height=height, radius=r_mid)
@@ -124,10 +133,15 @@ def make_body():
                .polyline([(r_base, -w_base / 2), (r_crest, -w_crest / 2),
                           (r_crest, w_crest / 2), (r_base, w_base / 2)]).close())
     ridge = profile.sweep(cq.Workplane().add(helix), isFrenet=True)
-    z0 = -COLLAR_H + 1.5
+    z0 = -(THREAD_TOP + height)
     for i in range(THREAD_STARTS):
         body = body.union(ridge.rotate((0, 0, 0), (0, 0, 1), 360 / THREAD_STARTS * i)
                           .translate((0, 0, z0)))
+    # pocket for the seal washer, in the face the bottle rim presses against
+    if WASHER_T > 0:
+        pocket = (cq.Workplane("XY").circle(WASHER_OD / 2 + 0.15).circle(WASHER_ID / 2 - 0.15)
+                  .extrude(WASHER_T - WASHER_SQUEEZE))
+        body = body.cut(pocket)
     # grip ribs on the outside of the collar
     for i in range(36):
         a = 360 / 36 * i
@@ -185,6 +199,11 @@ def make_clip():
     return ring.cut(gap).union(tab)
 
 
+def make_washer():
+    return (cq.Workplane("XY").circle(WASHER_OD / 2).circle(WASHER_ID / 2).extrude(WASHER_T)
+            .translate((0, 0, -WASHER_SQUEEZE)))
+
+
 def pressed(shape):
     return shape.translate((0, 0, -STROKE))
 
@@ -198,12 +217,14 @@ def main():
         "head": make_head(),
         "safety_clip": make_clip(),
     }
+    if WASHER_T > 0:
+        parts["washer"] = make_washer()
     for name, wp in parts.items():
         cq.exporters.export(wp, os.path.join(OUT, f"{name}.stl"), tolerance=0.01, angularTolerance=0.1)
 
     asm = cq.Assembly(name="powder_cap")
     colors = {"body": (0.93, 0.94, 0.95, 0.6), "lid": (0.93, 0.94, 0.95, 1), "plunger": (0.2, 0.2, 0.22, 1),
-              "head": (0.08, 0.08, 0.09, 1), "safety_clip": (1.0, 0.42, 0.07, 1)}
+              "head": (0.08, 0.08, 0.09, 1), "safety_clip": (1.0, 0.42, 0.07, 1), "washer": (0.2, 0.5, 0.9, 1)}
     for name, wp in parts.items():
         asm.add(wp, name=name, color=cq.Color(*colors[name]))
     asm.save(os.path.join(OUT, "cap_assembly.step"))

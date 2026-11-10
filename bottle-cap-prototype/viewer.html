@@ -80,7 +80,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
 
   <aside>
     <div>
-      <div class="eyebrow">Printable prototype · v1</div>
+      <div class="eyebrow">Printable prototype · v1.1 · PCO 1881</div>
       <h1>Cross-Blade Powder Cap</h1>
       <p>These are the actual print files, not a concept render. Pressing the head drives an X-shaped blade through a foil disc. The slanted edges puncture the centre first and then cut outward, so the foil opens as four flaps that stay attached.</p>
     </div>
@@ -95,6 +95,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
           <tr><td><span class="sw" style="background:#2b2d32"></span>plunger</td><td>Peg end down, blade tip up.</td></tr>
           <tr><td><span class="sw" style="background:#1b1c1f;border:1px solid #444"></span>head</td><td>Dimpled top on the bed.</td></tr>
           <tr><td><span class="sw" style="background:#ff6a13"></span>safety_clip</td><td>Flat on the bed.</td></tr>
+          <tr><td><span class="sw" style="background:#3d7fe0"></span>washer</td><td>Flat, in TPU. Or buy a 22 × 27 × 1 mm silicone washer.</td></tr>
         </tbody>
       </table></div>
     </div>
@@ -102,12 +103,13 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     <div>
       <h2>Key numbers</h2>
       <dl>
-        <dt>Cap height before pressing</dt><dd>76 mm</dd>
+        <dt>Cap height before pressing</dt><dd>74 mm</dd>
         <dt>Chamber</dt><dd>Ø36 mm · ≈ 34 mL</dd>
         <dt>Floor opening</dt><dd>Ø19 mm</dd>
         <dt>Blade X span</dt><dd>18 mm · 45° edges</dd>
         <dt>Stroke</dt><dd>14 mm</dd>
-        <dt>Neck (default)</dt><dd>28 mm PCO 1881, approx.</dd>
+        <dt>Neck</dt><dd>PCO 1881 (Dasani)</dd>
+        <dt>Neck thread</dt><dd>1 start · 2.7 mm · 650°</dd>
         <dt>Sliding clearance</dt><dd>0.2 mm (resin)</dd>
       </dl>
     </div>
@@ -119,14 +121,14 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
         <li>Fill the chamber with powder.</li>
         <li>Push the plunger up through the lid from underneath, blade end down, then press the lid into the chamber.</li>
         <li>Press the head onto the peg. Add a drop of glue if it's loose.</li>
-        <li>Snap the safety clip around the shaft and screw the cap onto a filled bottle.</li>
+        <li>Drop the washer into the pocket under the cap, snap the safety clip around the shaft, and screw the cap onto a filled bottle.</li>
       </ol>
     </div>
 
     <div>
       <h2>Before you print</h2>
       <ol class="list">
-        <li><strong>Measure your bottle neck</strong> with calipers: thread outside diameter, thread root diameter, bore, and how many thread starts it has. The defaults are approximate, and a few tenths of a millimetre decides whether the cap screws on.</li>
+        <li><strong>Check the bottle is PCO 1881.</strong> The thread is set to the published PCO 1881 standard used on Dasani. A sealed cap should come off in about 1¾ turns. The thread root diameter (24.94 mm) is provisional, so check it with calipers if you can.</li>
         <li>Set <code>CLEARANCE</code> and <code>LID_FIT</code> for your printer at the top of <code>cap.py</code>. Resin defaults are set; for filament use about 0.35 and 0.15, and <code>BLADE_T</code> 1.2.</li>
         <li>Re-run <code>python cap.py</code> to regenerate the STL files.</li>
       </ol>
@@ -139,7 +141,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
         <li><strong>Opening:</strong> do all four flaps fold clear, and does all the powder fall through?</li>
         <li><strong>Leaks:</strong> screw on, turn upside down, squeeze the bottle.</li>
       </ol>
-      <p class="note" style="margin-top:12px">Known compromise: the cap is tall (76 mm) because 34 mL of powder space and a 14 mm stroke both add height. A smaller dose or a steeper blade shortens it.</p>
+      <p class="note" style="margin-top:12px">Known compromise: the cap is tall (74 mm) because 34 mL of powder space and a 14 mm stroke both add height. A smaller dose or a steeper blade shortens it.</p>
     </div>
   </aside>
 </div>
@@ -190,6 +192,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     plunger: { mat: mat({ color: 0x2b2d32, roughness: 0.5, metalness: 0.05, envMapIntensity: 0.5 }), parent: moving },
     head: { mat: mat({ color: 0x1b1c1f, roughness: 0.75 }), parent: moving },
     safety_clip: { mat: mat({ color: 0xff6a13, roughness: 0.4, emissive: 0xff3a00, emissiveIntensity: 0.1 }) },
+    washer: { mat: mat({ color: 0x3d7fe0, roughness: 0.7 }) },
   };
 
   // foil: fixed ring with a diamond hole + four triangular flaps hinged on the diamond edges
@@ -222,7 +225,8 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   neck.rotation.x = Math.PI / 2; neck.renderOrder = 3; cad.add(neck);
   class Helix extends THREE.Curve { constructor(r, lead, turns, a0, z0) { super(); Object.assign(this, { r, lead, turns, a0, z0 }); }
     getPoint(t, v = new THREE.Vector3()) { const a = this.a0 + t * this.turns * Math.PI * 2; return v.set(Math.cos(a) * this.r, Math.sin(a) * this.r, this.z0 + t * this.turns * this.lead); } }
-  for (let i = 0; i < 3; i++) { const th = new THREE.Mesh(new THREE.TubeGeometry(new Helix(13.05, 8.1, 0.85, i * 2 * Math.PI / 3 + 0.3, -11.2), 60, 0.55, 6), neckMat); th.renderOrder = 3; cad.add(th); }
+  // PCO 1881: one thread, 2.7 mm lead, 650 deg, starting 1.7 mm below the rim
+  { const turns = 650 / 360; const th = new THREE.Mesh(new THREE.TubeGeometry(new Helix(13.05, 2.7, turns, 0, -1.7 - 2.7 * turns), 120, 0.5, 6), neckMat); th.renderOrder = 3; cad.add(th); }
 
   // geometry comes from the exported STL files, packed as base64 float32 triangle lists
   let loaded = 0;
@@ -235,7 +239,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
       geo.computeVertexNormals();
       p.mesh = new THREE.Mesh(geo, p.mat); if (name === 'body') p.mesh.renderOrder = 5;
       (p.parent || cad).add(p.mesh);
-      if (++loaded === 5) document.getElementById('loading').hidden = true;
+      if (++loaded === Object.keys(parts).length) document.getElementById('loading').hidden = true;
     }).catch(() => { document.getElementById('loading').textContent = 'Could not load the ' + name + ' part. Reload the page to try again.'; });
   });
   function applyClip() { mats.forEach(m => { m.clippingPlanes = planes(); m.needsUpdate = true; }); }
