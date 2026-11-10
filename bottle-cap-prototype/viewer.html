@@ -228,7 +228,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   class Helix extends THREE.Curve { constructor(r, lead, turns, a0, z0) { super(); Object.assign(this, { r, lead, turns, a0, z0 }); }
     getPoint(t, v = new THREE.Vector3()) { const a = this.a0 + t * this.turns * Math.PI * 2; return v.set(Math.cos(a) * this.r, Math.sin(a) * this.r, this.z0 + t * this.turns * this.lead); } }
   // PCO 1881: one thread, 2.7 mm lead, 650 deg, starting 1.7 mm below the rim
-  const neckThreadMat = mat({ color: 0x5aa9ff, roughness: 0.3, transparent: true, opacity: 0.25, depthWrite: false });
+  const neckThreadMat = mat({ color: 0x5aa9ff, roughness: 0.3, transparent: true, opacity: 0.7, depthWrite: false });
   { const turns = 650 / 360; const th = new THREE.Mesh(new THREE.TubeGeometry(new Helix(13.05, 2.7, turns, 0, -1.7 - 2.7 * turns), 160, 0.5, 8), neckThreadMat); th.renderOrder = 3; cad.add(th); }
 
   // geometry comes from the exported STL files, packed as base64 float32 triangle lists
@@ -261,7 +261,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   document.getElementById('threads').addEventListener('click', e => {
     threadsOn = !threadsOn; e.currentTarget.setAttribute('aria-pressed', String(threadsOn));
     parts.body.mat.opacity = threadsOn ? 0.1 : 0.3;
-    neckThreadMat.opacity = threadsOn ? 0.9 : 0.25; neckMat.opacity = threadsOn ? 0.12 : 0.25;
+    neckThreadMat.opacity = threadsOn ? 0.9 : 0.7; neckMat.opacity = threadsOn ? 0.12 : 0.25;
     camGoal = threadsOn ? { y: -3, d: 78 } : { y: 18, d: 185 };
     if (threadsOn) say('Orange: cap thread · blue: bottle thread (PCO 1881, 1 start, 2.7 mm)', false); else say(baseStatus, false);
   });

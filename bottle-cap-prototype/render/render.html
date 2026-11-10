@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cap render stage</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0b0c; overflow: hidden; }
+  #c { position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+       background: radial-gradient(ellipse 70% 65% at 50% 42%, #2e2f34 0%, #151619 55%, #09090a 100%); }
+  .cap { position: absolute; left: 40px; bottom: 36px; font: 500 22px/1.3 "Helvetica Neue", Arial, sans-serif; color: #eceef1; letter-spacing: .02em; }
+  .cap small { display: block; font: 400 15px/1.4 Menlo, Consolas, monospace; color: #9a9ea6; margin-top: 4px; }
+  .tag { position: absolute; right: 40px; top: 36px; font: 400 14px Menlo, Consolas, monospace; color: #6d717a; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="cap" id="cap"></div>
+<div class="tag" id="tag"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// Render stage for the cross-blade powder cap. Driven by render.js (Playwright).
+// Modes: "bottle" (cap on a 500 mL bottle), "cap" (cap alone, from below), "screw" (cutaway animation).
+(async function () {
+  const mode = (location.hash || '#bottle').slice(1);
+  const LEAD = 2.7, NECK_TURNS = 650 / 360;
+  const canvas = document.getElementById('c');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(window.devicePixelRatio || 1);
+  renderer.setSize(innerWidth, innerHeight, false);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  renderer.localClippingEnabled = true;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(26, innerWidth / innerHeight, 1, 3000);
+
+  // studio lighting: softboxes baked into an environment map + a key light
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const env = new THREE.Scene(); env.background = new THREE.Color(0x040405);
+  const box = (w, h, p, k) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(k, k, k), side: THREE.DoubleSide })); m.position.copy(p); m.lookAt(0, 0, 0); env.add(m); };
+  box(80, 80, new THREE.Vector3(0, 120, 0), 0.8); box(14, 140, new THREE.Vector3(-90, 10, 40), 1.9);
+  box(14, 140, new THREE.Vector3(85, 10, -45), 1.5); box(60, 30, new THREE.Vector3(20, 0, 120), 0.22);
+  scene.environment = pmrem.fromScene(env, 0.04).texture;
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x1a1a1a, 0.35));
+  const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(-80, 140, 120); scene.add(key);
+  const rim = new THREE.DirectionalLight(0xffffff, 0.5); rim.position.set(90, 40, -100); scene.add(rim);
+
+  const cutaway = mode === 'screw' || mode === 'cap';
+  const clip = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0);   // screw: removes the +x half
+  // cap: removes only the quarter facing the camera (x > 0 and z > 0), so outside and inside both show
+  const planes = mode === 'cap' ? [new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0), new THREE.Plane(new THREE.Vector3(0, 0, -1), 0)] : [clip];
+  const M = (o) => new THREE.MeshPhysicalMaterial(Object.assign({ side: THREE.DoubleSide, clippingPlanes: cutaway ? planes : [], clipIntersection: mode === 'cap' }, o));
+
+  const cad = new THREE.Group(); cad.rotation.x = -Math.PI / 2; scene.add(cad);   // CAD files are z-up
+  const capG = new THREE.Group(); cad.add(capG);
+
+  async function part(name, mat, parent) {
+    const j = await (await fetch('../web/' + name + '.json')).json();
+    const bin = atob(j.positions), bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(bytes.buffer), 3));
+    g.computeVertexNormals();
+    if (name === 'cap_thread') { mat.polygonOffset = true; mat.polygonOffsetFactor = -2; mat.polygonOffsetUnits = -2; }
+    if (cutaway && name !== 'cap_thread') {
+      // two-tone cutaway: outside faces in the part colour, inside faces darker so the section reads
+      const front = mat.clone(); front.side = THREE.FrontSide;
+      const back = mat.clone(); back.side = THREE.BackSide; back.color = mat.color.clone().multiplyScalar(0.45);
+      back.clearcoat = 0; back.envMapIntensity = 0.4;
+      parent.add(new THREE.Mesh(g, back));
+      const m = new THREE.Mesh(g, front); parent.add(m); return m;
+    }
+    const m = new THREE.Mesh(g, mat); parent.add(m); return m;
+  }
+  const pp = M({ color: 0xf2f3f4, roughness: 0.42, clearcoat: 0.25, clearcoatRoughness: 0.4 });  // polypropylene white
+  await part('body', pp, capG);
+  await part('lid', pp, capG);
+  await part('plunger', M({ color: 0x2b2d32, roughness: 0.5 }), capG);
+  await part('head', M({ color: 0x141518, roughness: 0.75 }), capG);
+  if (mode === 'bottle') await part('safety_clip', M({ color: 0xff6a13, roughness: 0.4, emissive: 0xff3a00, emissiveIntensity: 0.08 }), capG);
+  await part('washer', M({ color: 0x55606b, roughness: 0.8 }), capG);
+  if (cutaway) await part('cap_thread', M({ color: 0xff6a13, roughness: 0.35, emissive: 0xff3a00, emissiveIntensity: 0.3 }), capG);
+
+  // ---------- bottle (PCO 1881 neck, rim at CAD z = 0) ----------
+  const bottle = new THREE.Group(); cad.add(bottle);
+  const lathe = (pts, mat, seg = 160) => { const m = new THREE.Mesh(new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), seg), mat); m.rotation.x = Math.PI / 2; bottle.add(m); return m; };
+  const petTint = M({ color: 0xa9c4cf, roughness: 0.08, transparent: true, opacity: cutaway ? 0.35 : 0.12, depthWrite: false });
+  const petShine = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.04, envMapIntensity: 1.0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, clippingPlanes: cutaway ? [clip] : [] });
+  // neck finish (solid ring of PET) + support ring + tamper bead
+  const neckPts = [[10.87, -17.5], [12.47, -17.5], [12.47, -0.6], [12.1, 0], [10.87, 0]];
+  const neckMat = M({ color: 0xc9dde6, roughness: 0.1, transparent: true, opacity: cutaway ? 0.3 : 0.35, depthWrite: false });
+  [lathe(neckPts, neckMat), lathe(neckPts, petShine)].forEach(m => m.renderOrder = 2);
+  lathe([[12.4, -16.6], [16.5, -16.2], [16.5, -15.0], [12.4, -14.6]], neckMat).renderOrder = 2;
+  lathe([[12.4, -12.2], [13.9, -11.5], [13.9, -10.9], [12.4, -10.4]], neckMat).renderOrder = 2;
+  // neck thread: one right-hand start, 2.7 mm lead, 650 deg, starting 1.7 mm below the rim
+  class Helix extends THREE.Curve { constructor(r, lead, turns, z0) { super(); Object.assign(this, { r, lead, turns, z0 }); }
+    getPoint(t, v = new THREE.Vector3()) { const a = t * this.turns * Math.PI * 2; return v.set(Math.cos(a) * this.r, Math.sin(a) * this.r, this.z0 + t * this.turns * this.lead); } }
+  const neckThreadMat = M({ color: cutaway ? 0x5aa9ff : 0xc9dde6, roughness: 0.25, transparent: !cutaway, opacity: cutaway ? 1 : 0.5 });
+  const nt = new THREE.Mesh(new THREE.TubeGeometry(new Helix(13.0, LEAD, NECK_TURNS, -1.7 - LEAD * NECK_TURNS), 200, 0.55, 10), neckThreadMat);
+  nt.renderOrder = 2; bottle.add(nt);
+  // bottle body (500 mL) below the support ring
+  const bodyPts = [[0, -204], [27, -204], [31.5, -201.5], [33, -194], [33, -108], [30.5, -96], [28.5, -86], [30.5, -76], [32.5, -66], [32.5, -52], [29, -38], [21, -25], [15.5, -18.5], [12.47, -17.5]];
+  if (mode === 'bottle') {
+    const b1 = lathe(bodyPts, petTint, 200), b2 = lathe(bodyPts, petShine, 200); b1.renderOrder = 3; b2.renderOrder = 4;
+    // water to the shoulder
+    const w = [[0, -203], [30.8, -203], [31.8, -194], [31.8, -108], [29.4, -96], [27.4, -86], [29.4, -76], [31.4, -66], [31.4, -55], [0, -55]];
+    lathe(w, new THREE.MeshBasicMaterial({ color: 0x9fd2ea, transparent: true, opacity: 0.08, depthWrite: false, side: THREE.DoubleSide })).renderOrder = 1;
+    // label sleeve
+    const c2 = document.createElement('canvas'); c2.width = 2400; c2.height = 900; const g = c2.getContext('2d');
+    g.fillStyle = '#0d0d0f'; g.fillRect(0, 0, 2400, 900); g.textAlign = 'center'; g.fillStyle = '#ff6a13'; g.fillRect(1140, 200, 120, 10);
+    g.fillStyle = '#fff'; g.font = '900 250px "Arial Narrow", Impact, sans-serif'; g.fillText('PRE-LOADED', 1200, 520);
+    g.font = '500 64px Arial, sans-serif'; g.fillStyle = 'rgba(255,255,255,.85)'; g.fillText('Mix at the moment of use', 1200, 640);
+    const tex = new THREE.CanvasTexture(c2); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8;
+    const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(33.3, 33.3, 82, 200, 1, true), M({ map: tex, roughness: 0.6, clearcoat: 0.15 }));
+    sleeve.rotation.x = Math.PI / 2; sleeve.rotation.y = Math.PI + 0.25; sleeve.position.z = -150; bottle.add(sleeve);
+  } else {
+    // just the neck and shoulder start
+    const shoulder = [[12.47, -17.5], [15.5, -18.5], [21, -25], [24, -30]];
+    lathe(shoulder, petTint).renderOrder = 3;
+  }
+
+  // contact shadow
+  const sc = document.createElement('canvas'); sc.width = sc.height = 256; const sg = sc.getContext('2d');
+  const rg = sg.createRadialGradient(128, 128, 0, 128, 128, 128); rg.addColorStop(0, 'rgba(0,0,0,.7)'); rg.addColorStop(.5, 'rgba(0,0,0,.3)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+  sg.fillStyle = rg; sg.fillRect(0, 0, 256, 256);
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false }));
+  shadow.rotation.x = -Math.PI / 2; scene.add(shadow);
+
+  const capEl = document.getElementById('cap'), tagEl = document.getElementById('tag');
+  tagEl.textContent = 'Cross-blade powder cap · v1.1 · PCO 1881';
+
+  // ---------- poses ----------
+  // cap pose for a right-hand thread: unscrewing (counter-clockwise from above) by angle a raises it by LEAD * a / 2pi
+  function capPose(turnsOff, liftExtra = 0) {
+    capG.rotation.z = turnsOff * Math.PI * 2;
+    capG.position.z = turnsOff * LEAD + liftExtra;
+  }
+  const ENGAGE = 1.6;          // turns from first thread contact to seated
+  if (mode === 'bottle') {
+    bottle.visible = true; capPose(0); bottle.rotation.z = 0;
+    cad.rotation.z = -0.5; camera.position.set(330, 120, 560); camera.lookAt(0, -68, 0);
+    shadow.scale.set(170, 170, 1); shadow.position.y = -204;
+    capEl.innerHTML = 'Cap screwed onto a 500 mL bottle<small>PCO 1881 neck · cap height 74 mm · ≈ 34 mL powder</small>';
+  } else if (mode === 'cap') {
+    bottle.visible = false; capPose(0);
+    cad.rotation.z = 0;   // upright, front quarter cut away; camera slightly below
+    camera.position.set(150, -15, 150); camera.lookAt(0, 22, 0);
+    const under = new THREE.PointLight(0xffffff, 0.9, 400); under.position.set(20, -90, 40); scene.add(under);
+    shadow.visible = false;
+    capEl.innerHTML = 'Cap on its own, front quarter cut away<small>orange: internal thread · X blade · funnel floor · washer</small>';
+  } else {
+    bottle.visible = true; shadow.visible = false;
+    cad.rotation.z = 0; camera.position.set(78, 8, 26); camera.lookAt(0, -2, 0);   // close on the cut face at the threads
+  }
+
+  window.setFrame = function (t) {   // t in seconds, 0..8 (screw mode)
+    const e = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+    let turns = ENGAGE, lift = 14, label = '', sub = '';
+    if (t < 1.0) { lift = 14 * (1 - e(t / 1.0)); label = 'Lower onto the neck'; }
+    else if (t < 3.6) { lift = 0; turns = ENGAGE * (1 - e((t - 1.0) / 2.6)); label = 'Screwing on · clockwise'; sub = `${(ENGAGE - turns).toFixed(2)} of ${ENGAGE} turns`; }
+    else if (t < 4.6) { lift = 0; turns = 0; label = 'Seated · washer sealed on the rim'; }
+    else if (t < 7.2) { lift = 0; turns = ENGAGE * e((t - 4.6) / 2.6); label = 'Unscrewing · counter-clockwise'; sub = `${turns.toFixed(2)} of ${ENGAGE} turns`; }
+    else { turns = ENGAGE; lift = 14 * e((t - 7.2) / 0.8); label = 'Off'; }
+    capPose(turns, lift);
+    capEl.innerHTML = `${label}<small>${sub || 'Cutaway · orange: cap thread · blue: bottle thread'}</small>`;
+    renderer.render(scene, camera);
+  };
+  if (mode === 'screw') window.setFrame(0); else renderer.render(scene, camera);
+  window.renderReady = true;
+})();
+</script>
+</body>
+</html>
