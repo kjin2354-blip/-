@@ -1,8 +1,9 @@
-# Cross-blade powder cap: printable prototype v1.1 (PCO 1881 / Dasani)
+# Cross-blade powder cap: printable prototype v1.2 (PCO 1881 / Dasani)
 
 A screw-on bottle cap that stores pre-workout powder above a foil seal. Pressing the
 head drives an X-shaped blade through the foil. The blade's slanted edges puncture the
 centre first and then cut outward, so the foil opens as four flaps that stay attached.
+A return spring then lifts the blade back out of the opening so it doesn't block the powder.
 
 ## Files
 
@@ -12,8 +13,9 @@ centre first and then cut outward, so the foil opens as four flaps that stay att
 | `out/body.stl` | Collar with internal threads, neck seal ring, funnel floor, powder chamber |
 | `out/lid.stl` | Press-fit lid with a guide tube for the plunger |
 | `out/plunger.stl` | Shaft, retention collar and X blade |
-| `out/head.stl` | Push button, presses onto the plunger peg |
+| `out/head.stl` | Push button with a pocket for the return spring, presses onto the plunger peg |
 | `out/safety_clip.stl` | C-clip under the head that blocks accidental presses |
+| (buy) spring | Compression spring, about 11 mm OD × 0.8 mm wire × 25 mm free length, 7 coils. Modelled in the STEP file |
 | `out/washer.stl` | Seal washer, 22.2 × 27 × 1 mm. Print in TPU, or buy a silicone one |
 | `out/cap_assembly.step` | All parts in place, for CAD tools and closure manufacturers |
 | `viewer.html` | 3D viewer of the STL files with cutaway and press animation |
@@ -52,7 +54,8 @@ centre first and then cut outward, so the foil opens as four flaps that stay att
 2. Fill the chamber with powder (about 34 mL of space).
 3. Push the plunger up through the lid from underneath, blade end down, then press the lid
    into the chamber.
-4. Press the head onto the peg. Add a drop of glue if it's loose.
+4. Slide the spring over the shaft so it rests on the lid, then press the head onto the peg.
+   Add a drop of glue if it's loose.
 5. Drop the washer into the pocket under the cap, snap the safety clip around the shaft,
    and screw the cap onto a filled bottle.
 
@@ -65,7 +68,7 @@ centre first and then cut outward, so the foil opens as four flaps that stay att
 
 ## Known limits of v1
 
-- The cap is 74 mm tall before pressing, because 34 mL of powder space and a 14 mm stroke
+- The cap is 79.5 mm tall before pressing (the head pocket for the spring added 5.5 mm), because 34 mL of powder space and a 14 mm stroke
   both add height. A smaller dose (`CHAMBER_H`) or a steeper blade (`BLADE_H`) shortens it.
 - No tamper band. The safety clip stands in for it in prototypes.
 - The thread profile is a simple trapezoid, fine for test prints but not a production thread.

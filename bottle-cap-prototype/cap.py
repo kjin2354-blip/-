@@ -66,7 +66,15 @@ FOIL_GAP = 3.0          # gap from blade tip to foil before pressing
 OVERTRAVEL = 2.0        # how far the full blade width goes past the foil
 SHAFT_R = 3.5
 HEAD_R = 12.0
-HEAD_H = 5.0
+# Return spring (buy it, e.g. from a compression-spring assortment): sits around the shaft
+# between the lid and the head, and lifts the blade back out of the opening after a press.
+SPRING_OD = 11.0        # outside diameter (fits over the 7 mm shaft, inside the head cup)
+SPRING_WIRE = 0.8
+SPRING_FREE = 25.0      # free length
+SPRING_COILS = 7        # solid length = coils x wire = 5.6 mm
+CUP_DEPTH = 6.5         # pocket under the head that holds the spring when fully pressed
+HEAD_PLATE = 4.0
+HEAD_H = CUP_DEPTH + HEAD_PLATE
 LID_T = 3.0
 GUIDE_L = 8.0           # guide tube under the lid, keeps the plunger straight
 
@@ -90,6 +98,8 @@ assert WASHER_T == 0 or WASHER_ID / 2 > NECK_BORE / 2 + SEAL_INTERFERENCE, "wash
 assert OPENING_R < NECK_BORE / 2 - 0.5, "floor opening must fit inside the neck bore"
 assert BLADE_R < OPENING_R - 0.3, "blade must pass through the floor opening"
 assert BLADE_TOP < STOP_TOP - 2, "blade and retention collar overlap"
+assert CUP_DEPTH >= SPRING_COILS * SPRING_WIRE + 0.5, "spring would go solid before the head reaches the lid"
+assert SPRING_FREE > STROKE + CUP_DEPTH, "spring needs preload at rest"
 
 
 def revolve(points):
@@ -182,32 +192,46 @@ def make_plunger():
     cross = blade.union(blade.rotate((0, 0, 0), (0, 0, 1), 90))
     hub = cq.Workplane("XY").circle(SHAFT_R + 0.5).extrude(top - (TIP_Z + BLADE_H) + 0.5)\
         .translate((0, 0, TIP_Z + BLADE_H - 0.5))
-    shaft = cq.Workplane("XY").circle(SHAFT_R).extrude(HEAD_Z - top).translate((0, 0, top))
+    shaft = cq.Workplane("XY").circle(SHAFT_R).extrude(HEAD_Z + CUP_DEPTH - top).translate((0, 0, top))
     stop = cq.Workplane("XY").circle(SHAFT_R + 2.0).extrude(1.5).translate((0, 0, STOP_TOP - 1.5))
-    peg = cq.Workplane("XY").circle(PEG_R).extrude(PEG_H).translate((0, 0, HEAD_Z))
+    peg = cq.Workplane("XY").circle(PEG_R).extrude(PEG_H).translate((0, 0, HEAD_Z + CUP_DEPTH))
     return cross.union(hub).union(shaft).union(stop).union(peg)
 
 
 def make_head():
     head = (cq.Workplane("XY").circle(HEAD_R).extrude(HEAD_H)
             .edges(">Z").chamfer(0.8).translate((0, 0, HEAD_Z)))
-    socket = cq.Workplane("XY").circle(PEG_R + 0.02).extrude(PEG_H + 0.3).translate((0, 0, HEAD_Z))
+    cup = cq.Workplane("XY").circle(SPRING_OD / 2 + 0.6).extrude(CUP_DEPTH).translate((0, 0, HEAD_Z))
+    socket = cq.Workplane("XY").circle(PEG_R + 0.02).extrude(PEG_H + 0.3).translate((0, 0, HEAD_Z + CUP_DEPTH))
     dimple = cq.Workplane("XY").sphere(30).translate((0, 0, HEAD_Z + HEAD_H + 29.4))
-    return head.cut(socket).cut(dimple)
+    return head.cut(cup).cut(socket).cut(dimple)
 
 
 def make_clip():
     h = STROKE - 0.2
-    ring = (cq.Workplane("XY").circle(8.0).circle(SHAFT_R + 0.25).extrude(h)
+    # horseshoe around the spring; its arms flex to snap over the spring
+    r_in = SPRING_OD / 2 + 0.4
+    ring = (cq.Workplane("XY").circle(r_in + 3.6).circle(r_in).extrude(h)
             .translate((0, 0, LID_Z + LID_T + 0.1)))
-    gap = cq.Workplane("XY").box(10, SHAFT_R * 2 - 0.6, h + 2).translate((5, 0, LID_Z + LID_T + h / 2))
-    tab = cq.Workplane("XY").box(7, 6, 2.0).translate((-10.5, 0, LID_Z + LID_T + 0.1 + h / 2))
+    gap = cq.Workplane("XY").box(12, SPRING_OD - 0.6, h + 2).translate((6, 0, LID_Z + LID_T + h / 2))
+    tab = cq.Workplane("XY").box(7, 6, 2.0).translate((-(r_in + 3.6 + 2.5), 0, LID_Z + LID_T + 0.1 + h / 2))
     return ring.cut(gap).union(tab)
 
 
 def make_washer():
     return (cq.Workplane("XY").circle(WASHER_OD / 2).circle(WASHER_ID / 2).extrude(WASHER_T)
             .translate((0, 0, -WASHER_SQUEEZE)))
+
+
+def make_spring(length=None):
+    """Reference model of the bought spring at rest (not a print part)."""
+    length = length or (STROKE + CUP_DEPTH)
+    r = SPRING_OD / 2 - SPRING_WIRE / 2
+    run = length - SPRING_WIRE - 0.02          # wire centre line, so the coil ends touch the seats
+    helix = cq.Wire.makeHelix(pitch=run / SPRING_COILS, height=run, radius=r)
+    wire = cq.Workplane("XZ").center(r, 0).circle(SPRING_WIRE / 2)
+    return (wire.sweep(cq.Workplane().add(helix), isFrenet=True)
+            .translate((0, 0, LID_Z + LID_T + SPRING_WIRE / 2 + 0.01)))
 
 
 def pressed(shape):
@@ -233,6 +257,7 @@ def main():
               "head": (0.08, 0.08, 0.09, 1), "safety_clip": (1.0, 0.42, 0.07, 1), "washer": (0.2, 0.5, 0.9, 1)}
     for name, wp in parts.items():
         asm.add(wp, name=name, color=cq.Color(*colors[name]))
+    asm.add(make_spring(), name="spring_bought_part", color=cq.Color(0.6, 0.62, 0.65, 1))
     asm.save(os.path.join(OUT, "cap_assembly.step"))
 
     # pack the STLs for viewer.html (web/*.json); cap_thread is a highlight, not a print part

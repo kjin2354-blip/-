@@ -83,6 +83,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
       <div class="btns">
         <button class="primary" id="press">Press</button>
         <button id="screw">Unscrew</button>
+        <button id="shake">Shake</button>
         <button id="section" aria-pressed="true">Cutaway</button>
         <button id="threads" aria-pressed="false">Threads</button>
         <button id="bottle" aria-pressed="false">Full bottle</button>
@@ -94,9 +95,9 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
 
   <aside>
     <div>
-      <div class="eyebrow">Printable prototype · v1.1 · PCO 1881</div>
+      <div class="eyebrow">Printable prototype · v1.2 · PCO 1881</div>
       <h1>Cross-Blade Powder Cap</h1>
-      <p>These are the actual print files, not a concept render. Pressing the head drives an X-shaped blade through a foil disc. The slanted edges puncture the centre first and then cut outward, so the foil opens as four flaps that stay attached.</p>
+      <p>These are the actual print files, not a concept render. Pressing the head drives an X-shaped blade through a foil disc. The slanted edges puncture the centre first and then cut outward, so the foil opens as four flaps that stay attached. A spring then lifts the blade back out so the opening is clear for the powder.</p>
     </div>
 
     <div>
@@ -109,6 +110,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
           <tr><td><span class="sw" style="background:#2b2d32"></span>plunger</td><td>Peg end down, blade tip up.</td></tr>
           <tr><td><span class="sw" style="background:#1b1c1f;border:1px solid #444"></span>head</td><td>Dimpled top on the bed.</td></tr>
           <tr><td><span class="sw" style="background:#ff6a13"></span>safety_clip</td><td>Flat on the bed.</td></tr>
+          <tr><td><span class="sw" style="background:#9a9ea6"></span>spring</td><td>Buy, don't print: compression spring about 11 mm OD × 0.8 mm wire × 25 mm long.</td></tr>
           <tr><td><span class="sw" style="background:#55606b"></span>washer</td><td>Flat, in TPU. Or buy a 22 × 27 × 1 mm silicone washer.</td></tr>
         </tbody>
       </table></div>
@@ -117,11 +119,11 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     <div>
       <h2>Key numbers</h2>
       <dl>
-        <dt>Cap height before pressing</dt><dd>74 mm</dd>
+        <dt>Cap height before pressing</dt><dd>79.5 mm</dd>
         <dt>Chamber</dt><dd>Ø36 mm · ≈ 34 mL</dd>
         <dt>Floor opening</dt><dd>Ø19 mm</dd>
         <dt>Blade X span</dt><dd>18 mm · 45° edges</dd>
-        <dt>Stroke</dt><dd>14 mm</dd>
+        <dt>Stroke</dt><dd>14 mm · spring return</dd>
         <dt>Neck</dt><dd>PCO 1881 (Dasani)</dd>
         <dt>Neck thread</dt><dd>1 start · 2.7 mm · 650°</dd>
         <dt>Sliding clearance</dt><dd>0.2 mm (resin)</dd>
@@ -134,7 +136,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
         <li>Stick a disc of aluminium foil tape, about 24 mm across, on the flat ring around the floor opening inside the chamber. Press the edges down firmly.</li>
         <li>Fill the chamber with powder.</li>
         <li>Push the plunger up through the lid from underneath, blade end down, then press the lid into the chamber.</li>
-        <li>Press the head onto the peg. Add a drop of glue if it's loose.</li>
+        <li>Slide the spring over the shaft so it rests on the lid, then press the head onto the peg. Add a drop of glue if it's loose.</li>
         <li>Drop the washer into the pocket under the cap, snap the safety clip around the shaft, and screw the cap onto a filled bottle.</li>
       </ol>
     </div>
@@ -155,7 +157,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
         <li><strong>Opening:</strong> do all four flaps fold clear, and does all the powder fall through?</li>
         <li><strong>Leaks:</strong> screw on, turn upside down, squeeze the bottle.</li>
       </ol>
-      <p class="note" style="margin-top:12px">Known compromise: the cap is tall (74 mm) because 34 mL of powder space and a 14 mm stroke both add height. A smaller dose or a steeper blade shortens it.</p>
+      <p class="note" style="margin-top:12px">Known compromise: the cap is tall (79.5 mm) because 34 mL of powder space and a 14 mm stroke both add height. A smaller dose or a steeper blade shortens it.</p>
     </div>
   </aside>
 </div>
@@ -198,7 +200,10 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   const mats = [];
   function mat(opts, Kind = THREE.MeshPhysicalMaterial) { const m = new Kind(Object.assign({ side: THREE.DoubleSide }, opts)); mats.push(m); return m; }
 
-  const cad = new THREE.Group(); cad.rotation.x = -Math.PI / 2; scene.add(cad);   // CAD is z-up
+  // rig = the hand holding the bottle (pivot at mid-body); cad = the model, z-up
+  const PIVOT_Y = -110;
+  const rig = new THREE.Group(); rig.position.y = PIVOT_Y; scene.add(rig);
+  const cad = new THREE.Group(); cad.rotation.x = -Math.PI / 2; cad.position.y = -PIVOT_Y; rig.add(cad);
   const capG = new THREE.Group(); cad.add(capG);          // everything that screws on and off together
   const moving = new THREE.Group(); capG.add(moving);     // plunger + head
   const parts = {
@@ -255,8 +260,11 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   const petTint = mat({ color: 0xa9c4cf, roughness: 0.08, transparent: true, opacity: 0.12, depthWrite: false });
   const petShine = mat({ color: 0x000000, roughness: 0.04, envMapIntensity: 1.0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.FrontSide }, THREE.MeshStandardMaterial);
   lathe(bodyPts, petTint, fullG, 160).renderOrder = 3; lathe(bodyPts, petShine, fullG, 160).renderOrder = 4;
-  lathe([[0, -203], [30.8, -203], [31.8, -194], [31.8, -108], [29.4, -96], [27.4, -86], [29.4, -76], [31.4, -66], [31.4, -55], [0, -55]],
-    mat({ color: 0x9fd2ea, transparent: true, opacity: 0.08, depthWrite: false }, THREE.MeshBasicMaterial), fullG).renderOrder = 1;
+  // water fills to z = -55; its free surface is a clipping plane that tilts as the bottle moves
+  const WATER_Z = -55;
+  const waterMat = mat({ color: 0x9fd2ea, transparent: true, opacity: 0.1, depthWrite: false }, THREE.MeshBasicMaterial);
+  lathe([[0, -203], [30.8, -203], [31.8, -194], [31.8, -108], [29.4, -96], [27.4, -86], [29.4, -76], [31.4, -66], [31.4, -46], [29, -38], [21.5, -27], [0, -27]], waterMat, fullG).renderOrder = 1;
+  const surface = new THREE.Plane(new THREE.Vector3(0, -1, 0), WATER_Z);
   { const c2 = document.createElement('canvas'); c2.width = 2400; c2.height = 900; const g = c2.getContext('2d');
     g.fillStyle = '#0d0d0f'; g.fillRect(0, 0, 2400, 900); g.textAlign = 'center'; g.fillStyle = '#ff6a13'; g.fillRect(1140, 200, 120, 10);
     g.fillStyle = '#fff'; g.font = '900 250px "Big Shoulders Display", "Arial Narrow", Impact, sans-serif'; g.fillText('PRE-LOADED', 1200, 520);
@@ -264,6 +272,41 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     const tex = new THREE.CanvasTexture(c2); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8;
     const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(33.3, 33.3, 82, 160, 1, true), mat({ map: tex, roughness: 0.6, clearcoat: 0.15 }));
     sleeve.rotation.x = Math.PI / 2; sleeve.rotation.y = Math.PI + 0.25; sleeve.position.z = -150; fullG.add(sleeve); }
+
+  // ---- return spring (bought part): rebuilt as it compresses ----
+  const LID_TOP = LID_Z + 3, SPRING_REST = 20.5, SPRING_R = 5.1, SPRING_COILS = 7;
+  const springMat = mat({ color: 0x9a9ea6, metalness: 0.9, roughness: 0.3 });
+  const spring = new THREE.Mesh(new THREE.BufferGeometry(), springMat); capG.add(spring);
+  let springLen = -1;
+  function setSpring(len) {
+    if (Math.abs(len - springLen) < 0.05) return; springLen = len;
+    spring.geometry.dispose();
+    spring.geometry = new THREE.TubeGeometry(new Helix(SPRING_R, (len - 0.8) / SPRING_COILS, SPRING_COILS, 0, LID_TOP + 0.4), 7 * 28, 0.4, 6);
+  }
+  setSpring(SPRING_REST);
+
+  // ---- powder particles, in the bottle's own frame ----
+  const NP = 1600;
+  const pPos = new Float32Array(NP * 3).fill(0), pVel = new Float32Array(NP * 3), pLife = new Float32Array(NP);
+  for (let i = 0; i < NP; i++) pPos[i * 3 + 2] = 9999;
+  const pGeo = new THREE.BufferGeometry(); pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  const dotC = document.createElement('canvas'); dotC.width = dotC.height = 64; { const g = dotC.getContext('2d'), r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, '#fff'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); }
+  const pts = new THREE.Points(pGeo, new THREE.PointsMaterial({ color: 0xff7a22, size: 1.6, map: new THREE.CanvasTexture(dotC), transparent: true, depthWrite: false }));
+  pts.frustumCulled = false; pts.renderOrder = 2; cad.add(pts);
+  const bodyR = z => {  // inner radius of the bottle at height z (bottle frame)
+    if (z > -17.5) return 10.6;
+    for (let i = bodyPts.length - 1; i > 0; i--) { const a = bodyPts[i], b = bodyPts[i - 1]; if (z <= a[1] && z >= b[1]) return (a[0] + (b[0] - a[0]) * (z - a[1]) / ((b[1] - a[1]) || 1)) - 1.2; }
+    return 30;
+  };
+  let nextP = 0, toEmit = 0, emitted = 0;
+  function emit(n) {
+    for (let k = 0; k < n; k++) {
+      const i = nextP; nextP = (nextP + 1) % NP; const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 8;
+      pPos[i * 3] = Math.cos(a) * r; pPos[i * 3 + 1] = Math.sin(a) * r; pPos[i * 3 + 2] = 1 - Math.random() * 2;
+      pVel[i * 3] = (Math.random() - .5) * 40; pVel[i * 3 + 1] = (Math.random() - .5) * 40; pVel[i * 3 + 2] = -100 - Math.random() * 200;
+      pLife[i] = 1;
+    }
+  }
 
   // geometry comes from the exported STL files, packed as base64 float32 triangle lists
   let loaded = 0;
@@ -279,13 +322,14 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
       if (++loaded === Object.keys(parts).length) { document.getElementById('loading').hidden = true; apply(); }
     }).catch(() => { document.getElementById('loading').textContent = 'Could not load the ' + name + ' part. Reload the page to try again.'; });
   });
-  function applyClip() { mats.forEach(m => { m.clippingPlanes = planes(); m.needsUpdate = true; }); }
+  function applyClip() { mats.forEach(m => { m.clippingPlanes = m === waterMat ? [surface].concat(planes()) : planes(); m.needsUpdate = true; }); }
   applyClip();
 
   // ---- state: two operating values, each 0..1, driven by sliders or by the buttons ----
   const ease = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
   const clamp01 = x => Math.max(0, Math.min(1, x));
   const st = { press: 0, cap: 0 };
+  let cutMax = 0, released = false, mix = 0, shake = null;
   const tw = { press: null, cap: null };   // running tweens {from, to, t, dur}
   const pressR = document.getElementById('pressR'), capR = document.getElementById('capR');
   const pressO = document.getElementById('pressO'), capO = document.getElementById('capO');
@@ -299,7 +343,11 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     if (parts.safety_clip.mesh) { parts.safety_clip.mesh.position.x = -40 * clipOut; parts.safety_clip.mesh.visible = clipOut < 1; }
     moving.position.z = -d;
     const tipZ = TIP_Z - d, k = ease((FLOOR_T - tipZ) / (BLADE_H + 1));
-    flaps.forEach(f => f.quaternion.setFromAxisAngle(f.userData.axis, -k * 1.45));
+    cutMax = Math.max(cutMax, k);
+    // aluminium flaps stay bent once cut; they spring back only slightly when the blade leaves
+    flaps.forEach(f => f.quaternion.setFromAxisAngle(f.userData.axis, -1.45 * (0.86 * cutMax + 0.14 * k)));
+    setSpring(SPRING_REST - d);
+    if (cutMax > 0.4 && !released && st.cap < 0.01) { released = true; toEmit = NP; }
     // cap: 0..0.75 turns it counter-clockwise through the thread (rising one lead per turn), 0.75..1 lifts it clear
     const turns = ENGAGE * clamp01(st.cap / 0.75), lift = 22 * ease((st.cap - 0.75) / 0.25);
     capG.rotation.z = turns * Math.PI * 2; capG.position.z = turns * LEAD + lift;
@@ -307,20 +355,24 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     pressR.value = Math.round(st.press * 1000); capR.value = Math.round(st.cap * 1000);
     pressO.textContent = clipOut < 1 ? (clipOut > 0 ? 'pulling clip' : 'clip on') : `${d.toFixed(1)} of ${STROKE} mm`;
     capO.textContent = st.cap >= 0.999 ? 'off' : lift > 0.05 ? 'lifting off' : turns < 0.005 ? 'seated' : `${turns.toFixed(2)} turns`;
-    if (threadsOn) return;
+    if (threadsOn || shake) return;
     if (st.cap > 0.75) say('Cap off the bottle · screws back on the same way', false);
     else if (turns > 0.005) say(`Unscrewed ${turns.toFixed(2)} of ${ENGAGE} turns · thread still engaged`, true);
-    else if (d >= STROKE - 0.01) say('Head on the stop · four flaps open · shake', false);
+    else if (d >= STROKE - 0.01) say('Head on the stop · let go and the spring lifts the blade', false);
+    else if (cutMax > 0.4 && d < 0.5) say(mix > 0.95 ? 'Mixed · unscrew to drink' : mix > 0.02 ? `${Math.round(mix * 100)}% dissolved · shake again` : 'Blade back up · opening clear · press Shake', false);
     else if (d > 0) say(tipZ > FLOOR_T ? 'Blade moving down' : 'Blade punctures the centre, then cuts outward', true);
     else if (clipOut >= 1) say('Clip off · ready to press', false);
     else say('Safety clip on · foil intact · cap seated', false);
   }
-  function tween(key, to, dur) { tw[key] = { from: st[key], to, t: 0, dur: reduceMotion ? 0.01 : dur }; }
+  function tween(key, to, dur, then) { tw[key] = { from: st[key], to, t: 0, dur: reduceMotion ? 0.01 : dur, then }; }
+  const REST_PRESS = 0.25;   // clip off, blade fully up
+  const springBack = () => { if (st.press > REST_PRESS) tween('press', REST_PRESS, 0.35); };
   pressR.addEventListener('input', () => { tw.press = null; st.press = pressR.value / 1000; apply(); });
+  pressR.addEventListener('change', springBack);   // let go of the slider: the spring pushes the head back up
   capR.addEventListener('input', () => { tw.cap = null; st.cap = capR.value / 1000; apply(); syncScrewBtn(); });
 
   const pressBtn = document.getElementById('press'), screwBtn = document.getElementById('screw');
-  pressBtn.addEventListener('click', () => { tween('press', st.press > 0.5 ? 0 : 1, 2.4); pressBtn.textContent = st.press > 0.5 ? 'Press' : 'Release'; });
+  pressBtn.addEventListener('click', () => { if (tw.press) return; tween('press', 1, 2.0, springBack); });
   function syncScrewBtn() { screwBtn.textContent = st.cap > 0.5 ? 'Screw on' : 'Unscrew'; }
   screwBtn.addEventListener('click', () => { const to = st.cap > 0.5 ? 0 : 1; tween('cap', to, 3.6); screwBtn.textContent = to ? 'Screw on' : 'Unscrew'; });
   document.getElementById('section').addEventListener('click', e => { sectionOn = !sectionOn; e.currentTarget.setAttribute('aria-pressed', String(sectionOn)); applyClip(); });
@@ -340,7 +392,29 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     camGoal = on ? { y: -60, d: 620 } : { y: 18, d: 185 };
   });
   document.getElementById('powder').addEventListener('click', e => { powder.visible = !powder.visible; e.currentTarget.setAttribute('aria-pressed', String(powder.visible)); });
-  document.getElementById('reset').addEventListener('click', () => { tween('press', 0, 1.0); tween('cap', 0, 1.6); pressBtn.textContent = 'Press'; screwBtn.textContent = 'Unscrew'; });
+  document.getElementById('reset').addEventListener('click', () => {
+    shake = null; rig.position.set(0, PIVOT_Y, 0); rig.rotation.set(0, 0, 0); shakeBtn.disabled = false;
+    cutMax = 0; released = false; mix = 0; toEmit = 0; emitted = 0; pLife.fill(0);
+    for (let i = 0; i < NP; i++) pPos[i * 3 + 2] = 9999; pGeo.attributes.position.needsUpdate = true;
+    powder.scale.y = 1; powder.position.z = 0;
+    tween('press', 0, 1.0); tween('cap', 0, 1.6); screwBtn.textContent = 'Unscrew'; apply();
+  });
+
+  // ---- realistic shake: hand-held strokes along the bottle, ~3 per second, with a wrist tilt ----
+  const shakeBtn = document.getElementById('shake');
+  const SHAKE_T = 4.5, W = 2 * Math.PI * 3.1;
+  function handPose(t) {   // world-space offset (mm) and tilt (rad) of the hand at time t
+    const env = ease(t / 0.5) * ease((SHAKE_T - t) / 0.5);
+    return { x: env * 16 * Math.sin(W * t + 0.9), y: env * 52 * (Math.sin(W * t) + 0.22 * Math.sin(3 * W * t)),
+             rz: env * (0.42 + 0.2 * Math.sin(W * t + 0.6)), rx: env * 0.07 * Math.sin(0.5 * W * t), env };
+  }
+  shakeBtn.addEventListener('click', () => {
+    if (shake) return;
+    if (st.cap > 0.01) tween('cap', 0, 1.2);
+    if (!fullG.visible) bottleBtn.click();
+    controls.autoRotate = false; shake = { t: 0 }; shakeBtn.disabled = true;
+    say(released ? 'Shaking' : 'Shaking · press first to release the powder', true);
+  });
 
   function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w / h < 0.8 ? 42 : 30; camera.updateProjectionMatrix(); }
   new ResizeObserver(resize).observe(stage); resize();
@@ -348,6 +422,8 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   [pressR, capR].forEach(el => el.addEventListener('pointerdown', () => { controls.autoRotate = false; }));
   canvas.addEventListener('pointerdown', () => { controls.autoRotate = false; });
 
+  const slosh = { u: new THREE.Vector3(0, 1, 0), v: new THREE.Vector3() };
+  const WATER_C = new THREE.Color(0x9fd2ea), MIX_C = new THREE.Color(0xff6410);
   const clock = new THREE.Clock();
   (function frame() {
     const dt = Math.min(clock.getDelta(), 0.1);
@@ -355,9 +431,58 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     for (const key of ['press', 'cap']) {
       const a = tw[key]; if (!a) continue;
       a.t += dt; const k = ease(a.t / a.dur); st[key] = a.from + (a.to - a.from) * k; changed = true;
-      if (a.t >= a.dur) { st[key] = a.to; tw[key] = null; }
+      if (a.t >= a.dur) { st[key] = a.to; tw[key] = null; if (a.then) a.then(); }
     }
     if (changed) apply();
+
+    // hand motion + the acceleration the water and powder feel
+    const accel = new THREE.Vector3();
+    let shakeLevel = 0;
+    if (shake) {
+      shake.t += dt; const t = shake.t, h = 1 / 240, P0 = handPose(t), Pm = handPose(Math.max(0, t - h)), Pp = handPose(t + h);
+      rig.position.set(P0.x, PIVOT_Y + P0.y, 0); rig.rotation.set(P0.rx, 0, P0.rz);
+      accel.set((Pp.x - 2 * P0.x + Pm.x) / (h * h), (Pp.y - 2 * P0.y + Pm.y) / (h * h), 0);
+      shakeLevel = P0.env;
+      if (t >= SHAKE_T) { shake = null; rig.position.set(0, PIVOT_Y, 0); rig.rotation.set(0, 0, 0); shakeBtn.disabled = false; apply(); }
+    }
+    // slosh: the surface normal chases "up minus acceleration" through a damped spring, so it overshoots and settles
+    const target = new THREE.Vector3(0, 9800, 0).add(accel).normalize();
+    slosh.v.addScaledVector(target.clone().sub(slosh.u), 90 * dt).multiplyScalar(Math.exp(-3.2 * dt));
+    slosh.u.addScaledVector(slosh.v, dt).normalize();
+    const p0 = new THREE.Vector3(0, 0, WATER_Z); cad.localToWorld(p0);
+    surface.normal.copy(slosh.u).negate(); surface.constant = slosh.u.dot(p0);
+
+    // powder: emit after the cut, then fall, settle, swirl and dissolve in the bottle frame
+    if (toEmit > 0) { const n = Math.min(toEmit, Math.ceil(NP * dt / 1.4)); emit(n); toEmit -= n; emitted += n;
+      powder.scale.y = Math.max(0.001, 1 - emitted / NP); powder.position.z = FLOOR_T * (1 - powder.scale.y); }
+    if (emitted > 0) {
+      const q = new THREE.Quaternion(); cad.getWorldQuaternion(q); q.invert();
+      const g = new THREE.Vector3(0, -9800, 0).sub(accel).applyQuaternion(q);       // effective gravity, bottle frame
+      const up = slosh.u.clone().applyQuaternion(q), pl = new THREE.Vector3(0, 0, WATER_Z);
+      let dissolved = 0;
+      for (let i = 0; i < NP; i++) {
+        if (pLife[i] <= 0) { if (pPos[i * 3 + 2] < 9000) dissolved++; continue; }
+        let x = pPos[i * 3], y = pPos[i * 3 + 1], z = pPos[i * 3 + 2];
+        const wet = (x - pl.x) * up.x + (y - pl.y) * up.y + (z - pl.z) * up.z < 0;
+        if (wet) {
+          const drag = Math.exp(-7 * dt);
+          pVel[i * 3] = pVel[i * 3] * drag + g.x * 0.02 * dt + (Math.random() - .5) * 2600 * shakeLevel * dt;
+          pVel[i * 3 + 1] = pVel[i * 3 + 1] * drag + g.y * 0.02 * dt + (Math.random() - .5) * 2600 * shakeLevel * dt;
+          pVel[i * 3 + 2] = pVel[i * 3 + 2] * drag + g.z * 0.02 * dt + (Math.random() - .5) * 2600 * shakeLevel * dt;
+          pLife[i] -= dt * (0.05 + 0.9 * shakeLevel) * (0.6 + Math.random() * 0.8);
+        } else { pVel[i * 3] += g.x * dt; pVel[i * 3 + 1] += g.y * dt; pVel[i * 3 + 2] += g.z * dt; }
+        x += pVel[i * 3] * dt; y += pVel[i * 3 + 1] * dt; z += pVel[i * 3 + 2] * dt;
+        z = Math.min(1.5, Math.max(-202, z));
+        const lim = bodyR(z), rr = Math.hypot(x, y); if (rr > lim) { x *= lim / rr; y *= lim / rr; pVel[i * 3] *= -0.3; pVel[i * 3 + 1] *= -0.3; }
+        if (z <= -202 || z >= 1.5) pVel[i * 3 + 2] *= -0.3;
+        if (pLife[i] <= 0) { dissolved++; z = 9999; }
+        pPos[i * 3] = x; pPos[i * 3 + 1] = y; pPos[i * 3 + 2] = z;
+      }
+      pGeo.attributes.position.needsUpdate = true;
+      const m = dissolved / NP; if (m > mix) { mix = m; }
+      waterMat.color.copy(WATER_C).lerpHSL(MIX_C, Math.min(1, mix * 1.3)); waterMat.opacity = 0.1 + 0.62 * mix;
+      if (shake && released) say(`Shaking · ${Math.round(mix * 100)}% dissolved`, true);
+    }
     if (camGoal) {
       const k = Math.min(1, dt * (reduceMotion ? 30 : 3)), off = camera.position.clone().sub(controls.target);
       const dy = (camGoal.y - controls.target.y) * k; controls.target.y += dy;
