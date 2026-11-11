@@ -88,7 +88,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
         <button id="section" aria-pressed="true">Cutaway</button>
         <button id="threads" aria-pressed="false">Threads</button>
         <button id="bottle" aria-pressed="false">Full bottle</button>
-        <button id="powder" aria-pressed="false">Powder</button>
+        <button id="powder" aria-pressed="true">Powder</button>
         <button id="reset">Reset</button>
       </div>
     </div>
@@ -238,9 +238,14 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
 
   // powder: chamber cavity (toggle)
   const powderPts = [[0, FLOOR_T], [LAND_R, FLOOR_T], [CHAMBER_R - 0.1, FUNNEL_TOP_Z], [CHAMBER_R - 0.1, LID_Z - 4], [0, LID_Z - 4]].map(p => new THREE.Vector2(p[0], p[1]));
-  const powderMat = mat({ color: 0xff6a13, roughness: 1, transparent: true, opacity: 0.7, depthWrite: false, emissive: 0xff4a00, emissiveIntensity: 0.25 });
+  // solid, grainy powder that fills the whole chamber (floor funnel up to the lid)
+  const grainC = document.createElement('canvas'); grainC.width = grainC.height = 256;
+  { const g = grainC.getContext('2d'); g.fillStyle = '#ff6a13'; g.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 9000; i++) { g.fillStyle = Math.random() > .5 ? 'rgba(255,200,140,.45)' : 'rgba(150,40,0,.35)'; g.fillRect(Math.random() * 256, Math.random() * 256, 1.6, 1.6); } }
+  const grainTex = new THREE.CanvasTexture(grainC); grainTex.encoding = THREE.sRGBEncoding; grainTex.wrapS = grainTex.wrapT = THREE.RepeatWrapping; grainTex.repeat.set(6, 3);
+  const powderMat = mat({ map: grainTex, roughness: 1, emissive: 0xff4a00, emissiveIntensity: 0.18 });
   const powder = new THREE.Mesh(new THREE.LatheGeometry(powderPts, 96), powderMat);
-  powder.rotation.x = Math.PI / 2; powder.visible = false; powder.renderOrder = 4; capG.add(powder);
+  powder.rotation.x = Math.PI / 2; powder.visible = true; capG.add(powder);
 
   // ---- bottle: PCO 1881 neck (always) + optional 500 mL body ----
   const bottleG = new THREE.Group(); cad.add(bottleG);
