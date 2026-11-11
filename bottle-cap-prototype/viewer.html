@@ -29,8 +29,13 @@ body { background: var(--bg); color: var(--fg); font-family: var(--body); font-s
 .status.live::before { background: var(--accent); box-shadow: 0 0 0 4px rgba(255,106,19,.18); }
 .loading[hidden] { display: none; }
 .loading { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--mono); font-size: 12px; color: var(--muted); pointer-events: none; }
-.controls { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding-block: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-button { font: 600 13px/1 var(--body); letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 12px 18px; border: 1px solid var(--line); background: rgba(20,21,24,.82); color: var(--fg); cursor: pointer; backdrop-filter: blur(6px); }
+.controls { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 10px; align-items: center; padding-block: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.sliders { display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: center; background: rgba(20,21,24,.82); border: 1px solid var(--line); border-radius: 14px; padding: 10px 16px; backdrop-filter: blur(6px); max-width: 100%; }
+.sliders label { display: grid; grid-template-columns: 64px minmax(120px, 220px) 92px; align-items: center; gap: 10px; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.sliders input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+.sliders output { color: var(--fg); text-transform: none; letter-spacing: 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
+button { font: 600 12px/1 var(--body); letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 10px 14px; border: 1px solid var(--line); background: rgba(20,21,24,.82); color: var(--fg); cursor: pointer; backdrop-filter: blur(6px); }
 button:hover:not(:disabled) { border-color: #4a4d55; }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 button:disabled { opacity: .4; cursor: default; }
@@ -58,7 +63,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
 
 @media (max-width: 900px) {
   .wrap { grid-template-columns: minmax(0, 1fr); height: auto; }
-  .stage { height: 74vh; min-height: 480px; }
+  .stage { height: 86vh; min-height: 560px; }
   aside { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
   h1 { font-size: 44px; }
 }
@@ -71,11 +76,19 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     <div class="hint">Drag to orbit · scroll to zoom</div>
     <div class="status" id="status">Safety clip on · foil intact</div>
     <div class="controls">
-      <button class="primary" id="press">Pull clip &amp; press</button>
-      <button id="section" aria-pressed="true">Cutaway</button>
-      <button id="threads" aria-pressed="false">Threads</button>
-      <button id="powder" aria-pressed="false">Show powder</button>
-      <button id="reset">Reset</button>
+      <div class="sliders">
+        <label for="pressR"><span>Press</span><input type="range" id="pressR" min="0" max="1000" value="0"><output id="pressO">clip on</output></label>
+        <label for="capR"><span>Unscrew</span><input type="range" id="capR" min="0" max="1000" value="0"><output id="capO">seated</output></label>
+      </div>
+      <div class="btns">
+        <button class="primary" id="press">Press</button>
+        <button id="screw">Unscrew</button>
+        <button id="section" aria-pressed="true">Cutaway</button>
+        <button id="threads" aria-pressed="false">Threads</button>
+        <button id="bottle" aria-pressed="false">Full bottle</button>
+        <button id="powder" aria-pressed="false">Powder</button>
+        <button id="reset">Reset</button>
+      </div>
     </div>
   </section>
 
@@ -167,7 +180,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   camera.position.set(115, 70, 135);
   const controls = new THREE.OrbitControls(camera, canvas);
   controls.target.set(0, 18, 0); controls.enableDamping = true; controls.enablePan = false;
-  controls.minDistance = 60; controls.maxDistance = 600;
+  controls.minDistance = 50; controls.maxDistance = 900;
   controls.autoRotate = !reduceMotion; controls.autoRotateSpeed = 0.6; controls.update();
 
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -178,15 +191,16 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   scene.add(new THREE.HemisphereLight(0xffffff, 0x202020, 0.35));
   const key = new THREE.DirectionalLight(0xffffff, 0.8); key.position.set(-60, 120, 80); scene.add(key);
 
-  // cutaway: remove the half nearest the default camera side (x > 0 in CAD = x > 0 here)
+  // cutaway: remove the half nearest the default camera side
   const clip = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0);
   let sectionOn = true;
   const planes = () => sectionOn ? [clip] : [];
   const mats = [];
-  function mat(opts) { const m = new THREE.MeshPhysicalMaterial(Object.assign({ side: THREE.DoubleSide }, opts)); mats.push(m); return m; }
+  function mat(opts, Kind = THREE.MeshPhysicalMaterial) { const m = new Kind(Object.assign({ side: THREE.DoubleSide }, opts)); mats.push(m); return m; }
 
   const cad = new THREE.Group(); cad.rotation.x = -Math.PI / 2; scene.add(cad);   // CAD is z-up
-  const moving = new THREE.Group(); cad.add(moving);
+  const capG = new THREE.Group(); cad.add(capG);          // everything that screws on and off together
+  const moving = new THREE.Group(); capG.add(moving);     // plunger + head
   const parts = {
     body: { mat: mat({ color: 0xe9ecef, roughness: 0.45, clearcoat: 0.3, transparent: true, opacity: 0.3, depthWrite: false }) },
     lid: { mat: mat({ color: 0xcfd3d8, roughness: 0.5 }) },
@@ -194,12 +208,12 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     head: { mat: mat({ color: 0x1b1c1f, roughness: 0.75 }), parent: moving },
     safety_clip: { mat: mat({ color: 0xff6a13, roughness: 0.4, emissive: 0xff3a00, emissiveIntensity: 0.1 }) },
     washer: { mat: mat({ color: 0x55606b, roughness: 0.8 }) },
-    cap_thread: { mat: mat({ color: 0xff6a13, roughness: 0.35, emissive: 0xff3a00, emissiveIntensity: 0.35 }) },  // highlight of the thread inside the body
+    cap_thread: { mat: mat({ color: 0xff6a13, roughness: 0.35, emissive: 0xff3a00, emissiveIntensity: 0.35, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }) },
   };
 
   // foil: fixed ring with a diamond hole + four triangular flaps hinged on the diamond edges
   const foilMat = mat({ color: 0xf2f3f5, metalness: 0.6, roughness: 0.28, emissive: 0x7a7f88, emissiveIntensity: 0.55 });
-  const foil = new THREE.Group(); foil.position.z = FLOOR_T + 0.05; cad.add(foil);
+  const foil = new THREE.Group(); foil.position.z = FLOOR_T + 0.05; capG.add(foil);
   const ringShape = new THREE.Shape(); ringShape.absarc(0, 0, LAND_R, 0, Math.PI * 2, false);
   const hole = new THREE.Path(); hole.moveTo(BLADE_R, 0); hole.lineTo(0, BLADE_R); hole.lineTo(-BLADE_R, 0); hole.lineTo(0, -BLADE_R); hole.closePath(); ringShape.holes.push(hole);
   foil.add(new THREE.Mesh(new THREE.ShapeGeometry(ringShape, 48), foilMat));
@@ -210,7 +224,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute([ax - pivot.position.x, ay - pivot.position.y, 0, bx - pivot.position.x, by - pivot.position.y, 0, -pivot.position.x, -pivot.position.y, 0], 3));
     g.computeVertexNormals();
-    const m = new THREE.Mesh(g, foilMat); pivot.add(m);
+    pivot.add(new THREE.Mesh(g, foilMat));
     pivot.userData.axis = new THREE.Vector3(bx - ax, by - ay, 0).normalize();
     flaps.push(pivot);
   }
@@ -219,17 +233,37 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   const powderPts = [[0, FLOOR_T], [LAND_R, FLOOR_T], [CHAMBER_R - 0.1, FUNNEL_TOP_Z], [CHAMBER_R - 0.1, LID_Z - 4], [0, LID_Z - 4]].map(p => new THREE.Vector2(p[0], p[1]));
   const powderMat = mat({ color: 0xff6a13, roughness: 1, transparent: true, opacity: 0.7, depthWrite: false, emissive: 0xff4a00, emissiveIntensity: 0.25 });
   const powder = new THREE.Mesh(new THREE.LatheGeometry(powderPts, 96), powderMat);
-  powder.rotation.x = Math.PI / 2; powder.visible = false; powder.renderOrder = 4; cad.add(powder);
+  powder.rotation.x = Math.PI / 2; powder.visible = false; powder.renderOrder = 4; capG.add(powder);
 
-  // bottle neck reference (approximate 28 mm finish), clear
+  // ---- bottle: PCO 1881 neck (always) + optional 500 mL body ----
+  const bottleG = new THREE.Group(); cad.add(bottleG);
+  const lathe = (pts, m, parent = bottleG, seg = 128) => { const o = new THREE.Mesh(new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), seg), m); o.rotation.x = Math.PI / 2; parent.add(o); return o; };
   const neckMat = mat({ color: 0xbfd8e4, roughness: 0.1, transparent: true, opacity: 0.25, depthWrite: false });
-  const neck = new THREE.Mesh(new THREE.LatheGeometry([[10.85, 0], [12.45, 0], [12.55, -2], [12.55, -24], [16, -30], [10.85, -30]].map(p => new THREE.Vector2(p[0], p[1])), 96), neckMat);
-  neck.rotation.x = Math.PI / 2; neck.renderOrder = 3; cad.add(neck);
+  lathe([[10.87, -17.5], [12.47, -17.5], [12.47, -0.6], [12.1, 0], [10.87, 0]], neckMat).renderOrder = 3;     // neck finish
+  lathe([[12.4, -16.6], [16.5, -16.2], [16.5, -15.0], [12.4, -14.6]], neckMat).renderOrder = 3;             // support ring
+  lathe([[12.4, -12.2], [13.9, -11.5], [13.9, -10.9], [12.4, -10.4]], neckMat).renderOrder = 3;             // tamper bead
   class Helix extends THREE.Curve { constructor(r, lead, turns, a0, z0) { super(); Object.assign(this, { r, lead, turns, a0, z0 }); }
     getPoint(t, v = new THREE.Vector3()) { const a = this.a0 + t * this.turns * Math.PI * 2; return v.set(Math.cos(a) * this.r, Math.sin(a) * this.r, this.z0 + t * this.turns * this.lead); } }
-  // PCO 1881: one thread, 2.7 mm lead, 650 deg, starting 1.7 mm below the rim
+  // PCO 1881: one right-hand thread, 2.7 mm lead, 650 deg, starting 1.7 mm below the rim
+  const LEAD = 2.7, NECK_TURNS = 650 / 360, ENGAGE = 1.6;
   const neckThreadMat = mat({ color: 0x5aa9ff, roughness: 0.3, transparent: true, opacity: 0.7, depthWrite: false });
-  { const turns = 650 / 360; const th = new THREE.Mesh(new THREE.TubeGeometry(new Helix(13.05, 2.7, turns, 0, -1.7 - 2.7 * turns), 160, 0.5, 8), neckThreadMat); th.renderOrder = 3; cad.add(th); }
+  { const th = new THREE.Mesh(new THREE.TubeGeometry(new Helix(13.05, LEAD, NECK_TURNS, 0, -1.7 - LEAD * NECK_TURNS), 160, 0.5, 8), neckThreadMat); th.renderOrder = 3; bottleG.add(th); }
+  const stub = lathe([[12.47, -17.5], [15.5, -18.5], [21, -25], [24, -30]], neckMat); stub.renderOrder = 3;
+  // full 500 mL body, label and water (toggle)
+  const fullG = new THREE.Group(); fullG.visible = false; bottleG.add(fullG);
+  const bodyPts = [[0, -204], [27, -204], [31.5, -201.5], [33, -194], [33, -108], [30.5, -96], [28.5, -86], [30.5, -76], [32.5, -66], [32.5, -52], [29, -38], [21, -25], [15.5, -18.5], [12.47, -17.5]];
+  const petTint = mat({ color: 0xa9c4cf, roughness: 0.08, transparent: true, opacity: 0.12, depthWrite: false });
+  const petShine = mat({ color: 0x000000, roughness: 0.04, envMapIntensity: 1.0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.FrontSide }, THREE.MeshStandardMaterial);
+  lathe(bodyPts, petTint, fullG, 160).renderOrder = 3; lathe(bodyPts, petShine, fullG, 160).renderOrder = 4;
+  lathe([[0, -203], [30.8, -203], [31.8, -194], [31.8, -108], [29.4, -96], [27.4, -86], [29.4, -76], [31.4, -66], [31.4, -55], [0, -55]],
+    mat({ color: 0x9fd2ea, transparent: true, opacity: 0.08, depthWrite: false }, THREE.MeshBasicMaterial), fullG).renderOrder = 1;
+  { const c2 = document.createElement('canvas'); c2.width = 2400; c2.height = 900; const g = c2.getContext('2d');
+    g.fillStyle = '#0d0d0f'; g.fillRect(0, 0, 2400, 900); g.textAlign = 'center'; g.fillStyle = '#ff6a13'; g.fillRect(1140, 200, 120, 10);
+    g.fillStyle = '#fff'; g.font = '900 250px "Big Shoulders Display", "Arial Narrow", Impact, sans-serif'; g.fillText('PRE-LOADED', 1200, 520);
+    g.font = '500 64px Barlow, Arial, sans-serif'; g.fillStyle = 'rgba(255,255,255,.85)'; g.fillText('Mix at the moment of use', 1200, 640);
+    const tex = new THREE.CanvasTexture(c2); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8;
+    const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(33.3, 33.3, 82, 160, 1, true), mat({ map: tex, roughness: 0.6, clearcoat: 0.15 }));
+    sleeve.rotation.x = Math.PI / 2; sleeve.rotation.y = Math.PI + 0.25; sleeve.position.z = -150; fullG.add(sleeve); }
 
   // geometry comes from the exported STL files, packed as base64 float32 triangle lists
   let loaded = 0;
@@ -241,55 +275,89 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
       geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(bytes.buffer), 3));
       geo.computeVertexNormals();
       p.mesh = new THREE.Mesh(geo, p.mat); if (name === 'body') p.mesh.renderOrder = 5;
-      (p.parent || cad).add(p.mesh);
-      if (++loaded === Object.keys(parts).length) document.getElementById('loading').hidden = true;
+      (p.parent || capG).add(p.mesh);
+      if (++loaded === Object.keys(parts).length) { document.getElementById('loading').hidden = true; apply(); }
     }).catch(() => { document.getElementById('loading').textContent = 'Could not load the ' + name + ' part. Reload the page to try again.'; });
   });
   function applyClip() { mats.forEach(m => { m.clippingPlanes = planes(); m.needsUpdate = true; }); }
   applyClip();
 
-  // ---- interaction ----
+  // ---- state: two operating values, each 0..1, driven by sliders or by the buttons ----
+  const ease = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+  const clamp01 = x => Math.max(0, Math.min(1, x));
+  const st = { press: 0, cap: 0 };
+  const tw = { press: null, cap: null };   // running tweens {from, to, t, dur}
+  const pressR = document.getElementById('pressR'), capR = document.getElementById('capR');
+  const pressO = document.getElementById('pressO'), capO = document.getElementById('capO');
   const statusEl = document.getElementById('status');
-  let baseStatus = 'Safety clip on · foil intact';
-  const say = (t, live) => { statusEl.textContent = t; statusEl.classList.toggle('live', !!live); };
-  let anim = null, done = false;
-  const pressBtn = document.getElementById('press');
-  pressBtn.addEventListener('click', () => { if (anim || done) return; anim = { t: 0 }; pressBtn.disabled = true; say('Clip off · pressing', true); });
+  const say = (t, live) => { if (statusEl.textContent !== t) statusEl.textContent = t; statusEl.classList.toggle('live', !!live); };
+  let threadsOn = false, camGoal = null;
+
+  function apply() {
+    // press: first quarter of the slider pulls the clip off, the rest drives the blade down
+    const clipOut = clamp01(st.press / 0.25), d = STROKE * clamp01((st.press - 0.25) / 0.75);
+    if (parts.safety_clip.mesh) { parts.safety_clip.mesh.position.x = -40 * clipOut; parts.safety_clip.mesh.visible = clipOut < 1; }
+    moving.position.z = -d;
+    const tipZ = TIP_Z - d, k = ease((FLOOR_T - tipZ) / (BLADE_H + 1));
+    flaps.forEach(f => f.quaternion.setFromAxisAngle(f.userData.axis, -k * 1.45));
+    // cap: 0..0.75 turns it counter-clockwise through the thread (rising one lead per turn), 0.75..1 lifts it clear
+    const turns = ENGAGE * clamp01(st.cap / 0.75), lift = 22 * ease((st.cap - 0.75) / 0.25);
+    capG.rotation.z = turns * Math.PI * 2; capG.position.z = turns * LEAD + lift;
+    // read-outs
+    pressR.value = Math.round(st.press * 1000); capR.value = Math.round(st.cap * 1000);
+    pressO.textContent = clipOut < 1 ? (clipOut > 0 ? 'pulling clip' : 'clip on') : `${d.toFixed(1)} of ${STROKE} mm`;
+    capO.textContent = st.cap >= 0.999 ? 'off' : lift > 0.05 ? 'lifting off' : turns < 0.005 ? 'seated' : `${turns.toFixed(2)} turns`;
+    if (threadsOn) return;
+    if (st.cap > 0.75) say('Cap off the bottle · screws back on the same way', false);
+    else if (turns > 0.005) say(`Unscrewed ${turns.toFixed(2)} of ${ENGAGE} turns · thread still engaged`, true);
+    else if (d >= STROKE - 0.01) say('Head on the stop · four flaps open · shake', false);
+    else if (d > 0) say(tipZ > FLOOR_T ? 'Blade moving down' : 'Blade punctures the centre, then cuts outward', true);
+    else if (clipOut >= 1) say('Clip off · ready to press', false);
+    else say('Safety clip on · foil intact · cap seated', false);
+  }
+  function tween(key, to, dur) { tw[key] = { from: st[key], to, t: 0, dur: reduceMotion ? 0.01 : dur }; }
+  pressR.addEventListener('input', () => { tw.press = null; st.press = pressR.value / 1000; apply(); });
+  capR.addEventListener('input', () => { tw.cap = null; st.cap = capR.value / 1000; apply(); syncScrewBtn(); });
+
+  const pressBtn = document.getElementById('press'), screwBtn = document.getElementById('screw');
+  pressBtn.addEventListener('click', () => { tween('press', st.press > 0.5 ? 0 : 1, 2.4); pressBtn.textContent = st.press > 0.5 ? 'Press' : 'Release'; });
+  function syncScrewBtn() { screwBtn.textContent = st.cap > 0.5 ? 'Screw on' : 'Unscrew'; }
+  screwBtn.addEventListener('click', () => { const to = st.cap > 0.5 ? 0 : 1; tween('cap', to, 3.6); screwBtn.textContent = to ? 'Screw on' : 'Unscrew'; });
   document.getElementById('section').addEventListener('click', e => { sectionOn = !sectionOn; e.currentTarget.setAttribute('aria-pressed', String(sectionOn)); applyClip(); });
   // thread close-up: fade the body, highlight cap thread (orange) and bottle thread (blue), zoom in
-  let threadsOn = false, camGoal = null;
-  document.getElementById('threads').addEventListener('click', e => {
-    threadsOn = !threadsOn; e.currentTarget.setAttribute('aria-pressed', String(threadsOn));
+  const threadsBtn = document.getElementById('threads'), bottleBtn = document.getElementById('bottle');
+  threadsBtn.addEventListener('click', () => {
+    threadsOn = !threadsOn; threadsBtn.setAttribute('aria-pressed', String(threadsOn));
+    if (threadsOn && fullG.visible) { fullG.visible = false; stub.visible = true; bottleBtn.setAttribute('aria-pressed', 'false'); }
     parts.body.mat.opacity = threadsOn ? 0.1 : 0.3;
     neckThreadMat.opacity = threadsOn ? 0.9 : 0.7; neckMat.opacity = threadsOn ? 0.12 : 0.25;
     camGoal = threadsOn ? { y: -3, d: 78 } : { y: 18, d: 185 };
-    if (threadsOn) say('Orange: cap thread · blue: bottle thread (PCO 1881, 1 start, 2.7 mm)', false); else say(baseStatus, false);
+    if (threadsOn) say('Orange: cap thread · blue: bottle thread (PCO 1881, 1 start, 2.7 mm)', false); else apply();
+  });
+  bottleBtn.addEventListener('click', () => {
+    const on = !fullG.visible; fullG.visible = on; stub.visible = !on; bottleBtn.setAttribute('aria-pressed', String(on));
+    if (on && threadsOn) threadsBtn.click();
+    camGoal = on ? { y: -60, d: 620 } : { y: 18, d: 185 };
   });
   document.getElementById('powder').addEventListener('click', e => { powder.visible = !powder.visible; e.currentTarget.setAttribute('aria-pressed', String(powder.visible)); });
-  document.getElementById('reset').addEventListener('click', () => { anim = null; done = false; setPress(0, 0); pressBtn.disabled = false; baseStatus = 'Safety clip on · foil intact'; if (!threadsOn) say(baseStatus, false); });
+  document.getElementById('reset').addEventListener('click', () => { tween('press', 0, 1.0); tween('cap', 0, 1.6); pressBtn.textContent = 'Press'; screwBtn.textContent = 'Unscrew'; });
 
-  const ease = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
-  function setPress(clipOut, d) {
-    if (parts.safety_clip.mesh) { parts.safety_clip.mesh.position.x = -40 * clipOut; parts.safety_clip.mesh.visible = clipOut < 1; }
-    moving.position.z = -d;
-    // foil starts cutting when the tip reaches it, flaps fully open once the full blade width is through
-    const tipZ = TIP_Z - d, k = ease((FLOOR_T - tipZ) / (BLADE_H + 1));
-    flaps.forEach(f => f.quaternion.setFromAxisAngle(f.userData.axis, -k * 1.45));
-    powder.scale.set(1, 1, 1);
-  }
   function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w / h < 0.8 ? 42 : 30; camera.updateProjectionMatrix(); }
   new ResizeObserver(resize).observe(stage); resize();
+  // stop auto-rotation once the viewer starts operating it
+  [pressR, capR].forEach(el => el.addEventListener('pointerdown', () => { controls.autoRotate = false; }));
+  canvas.addEventListener('pointerdown', () => { controls.autoRotate = false; });
 
   const clock = new THREE.Clock();
   (function frame() {
     const dt = Math.min(clock.getDelta(), 0.1);
-    if (anim) {
-      anim.t += dt * (reduceMotion ? 5 : 1);
-      const c = ease(anim.t / 0.8), d = STROKE * ease((anim.t - 0.9) / 1.6);
-      setPress(c, d);
-      if (anim.t > 1.2 && anim.t < 2.5) say('Blade punctures the centre, then cuts outward', true);
-      if (anim.t >= 2.6) { anim = null; done = true; baseStatus = 'Head on the stop · four flaps open · shake'; say(baseStatus, false); }
+    let changed = false;
+    for (const key of ['press', 'cap']) {
+      const a = tw[key]; if (!a) continue;
+      a.t += dt; const k = ease(a.t / a.dur); st[key] = a.from + (a.to - a.from) * k; changed = true;
+      if (a.t >= a.dur) { st[key] = a.to; tw[key] = null; }
     }
+    if (changed) apply();
     if (camGoal) {
       const k = Math.min(1, dt * (reduceMotion ? 30 : 3)), off = camera.position.clone().sub(controls.target);
       const dy = (camGoal.y - controls.target.y) * k; controls.target.y += dy;
