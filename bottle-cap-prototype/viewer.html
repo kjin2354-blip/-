@@ -329,7 +329,8 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
       if (++loaded === Object.keys(parts).length) { document.getElementById('loading').hidden = true; apply(); }
     }).catch(() => { document.getElementById('loading').textContent = 'Could not load the ' + name + ' part. Reload the page to try again.'; });
   });
-  function applyClip() { mats.forEach(m => { m.clippingPlanes = m === waterMat ? [surface].concat(planes()) : planes(); m.needsUpdate = true; }); }
+  const powderTop = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+  function applyClip() { mats.forEach(m => { m.clippingPlanes = m === waterMat ? [surface].concat(planes()) : m === powderMat ? [powderTop].concat(planes()) : planes(); m.needsUpdate = true; }); }
   applyClip();
 
   // ---- state: two operating values, each 0..1, driven by sliders or by the buttons ----
@@ -404,7 +405,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     Object.assign(hand, { tx: 0, ty: 0, trz: 0, x: 0, y: 0, rz: 0, vx: 0, vy: 0, vrz: 0, lvl: 0 });
     cutMax = 0; released = false; mix = 0; toEmit = 0; emitted = 0; pLife.fill(0);
     for (let i = 0; i < NP; i++) pPos[i * 3 + 2] = 9999; pGeo.attributes.position.needsUpdate = true;
-    powder.scale.y = 1; powder.position.z = 0;
+    powder.scale.y = 1; powder.position.z = 0; powderMat.visible = true;
     tween('press', 0, 1.0); tween('cap', 0, 1.6); screwBtn.textContent = 'Unscrew'; apply();
   });
 
@@ -505,12 +506,17 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     const target = new THREE.Vector3(0, 9800, 0).add(accel).normalize();
     slosh.v.addScaledVector(target.clone().sub(slosh.u), 90 * dt).multiplyScalar(Math.exp(-3.2 * dt));
     slosh.u.addScaledVector(slosh.v, dt).normalize();
+    // powder level: the top surface sinks as the charge falls out; hidden once empty
+    { const left = 1 - emitted / NP; powderMat.visible = left > 0.002;
+      const lvl = new THREE.Vector3(0, 0, FLOOR_T + (LID_Z - 4 - FLOOR_T) * left + 0.01); capG.localToWorld(lvl);
+      const upW = new THREE.Vector3(0, 0, 1).transformDirection(capG.matrixWorld);
+      powderTop.normal.copy(upW).negate(); powderTop.constant = upW.dot(lvl); }
     const p0 = new THREE.Vector3(0, 0, WATER_Z); cad.localToWorld(p0);
     surface.normal.copy(slosh.u).negate(); surface.constant = slosh.u.dot(p0);
 
     // powder: emit after the cut, then fall, settle, swirl and dissolve in the bottle frame
     if (toEmit > 0) { const n = Math.min(toEmit, Math.ceil(NP * dt / 1.4)); emit(n); toEmit -= n; emitted += n;
-      powder.scale.y = Math.max(0.001, 1 - emitted / NP); powder.position.z = FLOOR_T * (1 - powder.scale.y); }
+    }
     if (emitted > 0) {
       const q = new THREE.Quaternion(); cad.getWorldQuaternion(q); q.invert();
       const g = new THREE.Vector3(0, -9800, 0).sub(accel).applyQuaternion(q);       // effective gravity, bottle frame
