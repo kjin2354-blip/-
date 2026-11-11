@@ -268,7 +268,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   const petShine = mat({ color: 0x000000, roughness: 0.04, envMapIntensity: 1.0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.FrontSide }, THREE.MeshStandardMaterial);
   lathe(bodyPts, petTint, fullG, 160).renderOrder = 3; lathe(bodyPts, petShine, fullG, 160).renderOrder = 4;
   // water fills to z = -55; its free surface is a clipping plane that tilts as the bottle moves
-  const WATER_Z = -55;
+  const WATER_Z = -36;   // 500 mL of water reaches about here, up into the shoulder
   const waterMat = mat({ color: 0xdcecf3, transparent: true, opacity: 0.1, depthWrite: false }, THREE.MeshBasicMaterial);
   lathe([[0, -203], [30.8, -203], [31.8, -194], [31.8, -108], [29.4, -96], [27.4, -86], [29.4, -76], [31.4, -66], [31.4, -46], [29, -38], [21.5, -27], [0, -27]], waterMat, fullG).renderOrder = 1;
   const surface = new THREE.Plane(new THREE.Vector3(0, -1, 0), WATER_Z);
