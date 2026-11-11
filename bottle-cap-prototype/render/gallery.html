@@ -1,0 +1,53 @@
+<title>Powder Cap Renders</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: single column of three large media panels with short captions. Single dark studio look. */
+:root {
+  --bg: #0c0d0f;
+  --panel: #131418;
+  --line: #25272c;
+  --fg: #eceef1;
+  --muted: #8c9099;
+  --accent: #ff6a13;
+  --sans: "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+main { max-width: 980px; margin: 0 auto; padding-block: 32px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 40px; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+h1 { font-size: 34px; line-height: 1.1; margin: 6px 0 8px; text-wrap: balance; }
+p { margin: 0; color: #c9ccd2; max-width: 65ch; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+figure img, figure video { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 12px; border: 1px solid var(--line); background: #000; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.pair figure { min-width: 0; }
+figcaption { font-size: 14px; color: var(--muted); }
+figcaption strong { color: var(--fg); font-weight: 600; display: block; font-size: 15px; margin-bottom: 2px; }
+.n { font-family: var(--mono); color: var(--accent); margin-right: 6px; }
+@media (max-width: 700px) { .pair { grid-template-columns: 1fr; } h1 { font-size: 28px; } }
+</style>
+
+<main>
+  <header>
+    <div class="eyebrow">Cross-blade powder cap · v1.1 · PCO 1881 neck</div>
+    <h1>Powder Cap Renders</h1>
+    <p>Rendered from the actual print files. The bottle body is a generic 500 mL shape, and the threads are colored so they're visible: orange is the cap's thread, blue is the bottle's.</p>
+  </header>
+
+  <figure>
+    <video src="cap-screw-on-off.mp4" controls autoplay muted loop playsinline aria-label="Cutaway animation of the cap screwing on and off"></video>
+    <figcaption><strong><span class="n">3</span>Screwing on and off</strong>8-second cutaway. The cap lowers onto the neck, screws on clockwise about 1.6 turns, seats on the washer, then unscrews and lifts off. Press play if it doesn't start on its own.</figcaption>
+  </figure>
+
+  <div class="pair">
+    <figure>
+      <img src="cap-on-bottle.png" alt="The cap screwed onto a 500 mL bottle with a black PRE-LOADED label" loading="lazy">
+      <figcaption><strong><span class="n">1</span>Cap on a 500 mL bottle</strong>Cap height 74 mm, about 34 mL of powder space.</figcaption>
+    </figure>
+    <figure>
+      <img src="cap-alone.png" alt="The cap alone with the front quarter cut away, showing the orange internal thread, X blade and funnel floor" loading="lazy">
+      <figcaption><strong><span class="n">2</span>Cap alone, front quarter cut away</strong>Orange ridge at the bottom is the internal thread. Also visible: X blade, funnel floor, washer.</figcaption>
+    </figure>
+  </div>
+</main>
