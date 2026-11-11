@@ -333,15 +333,14 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     // --- left side: how it works, with icons ---
     const lx = W * 0.19;
     g.fillStyle = ORANGE; g.font = `900 70px ${DISPLAY}`; sp('8px'); g.fillText('HOW IT WORKS', lx, 210);
-    const steps = [['PRESS', 'the cap to cut the seal'], ['SHAKE', 'about 10 seconds'], ['LIFT', 'drink it, go train']];
-    steps.forEach(([t, d], k) => {
+    const steps = ['PRESS', 'SHAKE', 'LIFT'];
+    steps.forEach((t, k) => {
       const y = 360 + k * 210, ix = lx - 300;
       g.strokeStyle = '#fff'; g.fillStyle = '#fff'; g.lineWidth = 10; g.lineCap = 'round'; g.lineJoin = 'round';
       if (k === 0) { g.beginPath(); g.moveTo(ix, y - 60); g.lineTo(ix, y + 30); g.stroke(); g.beginPath(); g.moveTo(ix - 36, y - 4); g.lineTo(ix, y + 36); g.lineTo(ix + 36, y - 4); g.stroke(); g.fillRect(ix - 50, y + 50, 100, 10); }
       else if (k === 1) { g.beginPath(); g.moveTo(ix - 50, y + 10); for (let q = 0; q < 5; q++) g.lineTo(ix - 50 + 25 * (q + 1), y + (q % 2 ? 10 : -40)); g.stroke(); }
       else dumbbell(g, ix, y - 10, 120, '#fff', -0.3);
-      g.textAlign = 'left'; g.font = `900 78px ${DISPLAY}`; sp('5px'); g.fillStyle = '#fff'; g.fillText(`${k + 1}  ${t}`, lx - 200, y + 8);
-      g.font = `500 40px Barlow, Arial, sans-serif`; sp('1px'); g.fillStyle = 'rgba(255,255,255,.6)'; g.fillText(d, lx - 200, y + 62);
+      g.textAlign = 'left'; g.font = `900 78px ${DISPLAY}`; sp('5px'); g.fillStyle = '#fff'; g.fillText(`${k + 1}  ${t}`, lx - 200, y + 18);
       g.textAlign = 'center';
     });
 
