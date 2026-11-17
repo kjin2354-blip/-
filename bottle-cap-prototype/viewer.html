@@ -288,11 +288,11 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   }
   function drawLabel() {
     const g = labelC.getContext('2d'), W = labelC.width, H = labelC.height, cx = W / 2;
-    const ORANGE = '#ff6a13', DARK = '#111214', DISPLAY = '"Big Shoulders Display", "Arial Narrow", Impact, sans-serif';
+    const ORANGE = '#b8f23a', DARK = '#0e1b3d', DISPLAY = '"Big Shoulders Display", "Arial Narrow", Impact, sans-serif';
     const sp = v => { if ('letterSpacing' in g) g.letterSpacing = v; };
     // matte black base with a soft spotlight behind the front panel
     g.fillStyle = DARK; g.fillRect(0, 0, W, H);
-    const glow = g.createRadialGradient(cx, H * 0.45, 40, cx, H * 0.45, 760); glow.addColorStop(0, 'rgba(255,106,19,.20)'); glow.addColorStop(1, 'rgba(255,106,19,0)');
+    const glow = g.createRadialGradient(cx, H * 0.45, 40, cx, H * 0.45, 760); glow.addColorStop(0, 'rgba(47,107,255,.35)'); glow.addColorStop(1, 'rgba(47,107,255,0)');
     g.fillStyle = glow; g.fillRect(0, 0, W, H);
     // fine diagonal texture
     g.strokeStyle = 'rgba(255,255,255,.025)'; g.lineWidth = 2;

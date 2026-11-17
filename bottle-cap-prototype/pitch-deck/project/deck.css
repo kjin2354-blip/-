@@ -1,12 +1,14 @@
 :root {
-  --dark: #131416;
-  --dark2: #1d1f23;
-  --light: #f2f1ec;
-  --light2: #e6e4dd;
-  --ink: #17181b;
-  --accent: #ff6a13;
-  --muted-d: #a6aab1;
-  --muted-l: #555a62;
+  --dark: #0e1b3d;
+  --dark2: #182a57;
+  --light: #f5f7fa;
+  --light2: #e3e9f2;
+  --ink: #0e1b3d;
+  --accent: #b8f23a;
+  --blue: #2f6bff;
+  --blue-ink: #1f4fd1;
+  --muted-d: #aebbd8;
+  --muted-l: #4a5675;
   --display: 'Big Shoulders Display', Impact, 'Arial Narrow', sans-serif;
   --body: 'Barlow', Arial, sans-serif;
 }
@@ -23,6 +25,8 @@ section.accent { background: var(--accent); color: var(--ink); }
 .head { display: flex; flex-direction: column; gap: 16px; }
 .eyebrow { font-size: 24px; font-weight: 600; letter-spacing: 4px; text-transform: uppercase; color: var(--accent); }
 section.accent .eyebrow { color: var(--ink); }
+section.light .eyebrow { color: var(--blue-ink); }
+section.light .card .label { color: var(--blue-ink); }
 h2 { font-family: var(--display); font-weight: 900; font-size: 88px; line-height: 1; letter-spacing: 1px; text-transform: uppercase; }
 h3 { font-family: var(--display); font-weight: 900; font-size: 48px; line-height: 1.05; text-transform: uppercase; letter-spacing: 1px; }
 p { font-size: 32px; line-height: 1.35; }
@@ -70,8 +74,8 @@ tr.us { background: var(--accent); }
 .market { display: flex; gap: 96px; align-items: center; }
 .market + .note { margin-top: -16px; }
 .nest { position: relative; width: 520px; height: 520px; }
-.tam { position: absolute; left: 0; top: 0; width: 520px; height: 520px; background: #26282d; border-radius: 12px; }
-.sam { position: absolute; left: 0; top: 220px; width: 300px; height: 300px; background: #5a2c10; border-radius: 12px; }
+.tam { position: absolute; left: 0; top: 0; width: 520px; height: 520px; background: #1c3166; border-radius: 12px; }
+.sam { position: absolute; left: 0; top: 220px; width: 300px; height: 300px; background: var(--blue); border-radius: 12px; }
 .som { position: absolute; left: 0; top: 400px; width: 120px; height: 120px; background: var(--accent); border-radius: 12px; }
 .tag { position: absolute; font-family: var(--display); font-weight: 900; font-size: 44px; letter-spacing: 2px; width: 160px; }
 .mrows { display: flex; flex-direction: column; gap: 40px; flex: 1; }
