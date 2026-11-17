@@ -1,4 +1,4 @@
-<title>POP-IT Cap</title>
+<title>POP-OUT Cap</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -97,7 +97,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   <aside>
     <div>
       <div class="eyebrow">Printable prototype · v1.2 · PCO 1881</div>
-      <h1>POP-IT</h1>
+      <h1>POP-OUT</h1>
       <p class="tagline">Less mess. More weights.</p>
       <p>These are the actual print files, not a concept render. Pressing the head drives an X-shaped blade through a foil disc. The slanted edges puncture the centre first and then cut outward, so the foil opens as four flaps that stay attached. A spring then lifts the blade back out so the opening is clear for the powder.</p>
     </div>
@@ -272,7 +272,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   const waterMat = mat({ color: 0xdcecf3, transparent: true, opacity: 0.1, depthWrite: false }, THREE.MeshBasicMaterial);
   lathe([[0, -203], [30.8, -203], [31.8, -194], [31.8, -108], [29.4, -96], [27.4, -86], [29.4, -76], [31.4, -66], [31.4, -46], [29, -38], [21.5, -27], [0, -27]], waterMat, fullG).renderOrder = 1;
   const surface = new THREE.Plane(new THREE.Vector3(0, -1, 0), WATER_Z);
-  // ---- POP-IT label: wraps the bottle; the front panel is centred at x = W/2 ----
+  // ---- POP-OUT label: wraps the bottle; the front panel is centred at x = W/2 ----
   const labelC = document.createElement('canvas'); labelC.width = 3060; labelC.height = 1200;
   function dumbbell(g, cx, cy, len, color, angle = 0) {
     const u = len / 10;
@@ -315,9 +315,9 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     for (const a of [-1.15, -0.75, -0.35]) { g.beginPath(); g.moveTo(cx + Math.cos(a) * 158, by + Math.sin(a) * 158); g.lineTo(cx + Math.cos(a) * 205, by + Math.sin(a) * 205); g.stroke(); }
     // wordmark: POP [dumbbell] IT
     g.font = `900 270px ${DISPLAY}`; sp('5px');
-    const wPop = g.measureText('POP').width, wIt = g.measureText('IT').width, gap = 140, total = wPop + gap + wIt, x0 = cx - total / 2, base = 715;
+    const wPop = g.measureText('POP').width, wIt = g.measureText('OUT').width, gap = 140, total = wPop + gap + wIt, x0 = cx - total / 2, base = 715;
     g.fillStyle = '#fff'; g.textAlign = 'left';
-    g.fillText('POP', x0, base); g.fillText('IT', x0 + wPop + gap, base);
+    g.fillText('POP', x0, base); g.fillText('OUT', x0 + wPop + gap, base);
     dumbbell(g, x0 + wPop + gap / 2, base - 95, 122, ORANGE, 0);
     g.textAlign = 'center';
     // tagline
