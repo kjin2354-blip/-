@@ -111,7 +111,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
           <tr><td><span class="sw" style="background:#cfd3d8"></span>lid</td><td>Top face on the bed.</td></tr>
           <tr><td><span class="sw" style="background:#2b2d32"></span>plunger</td><td>Peg end down, blade tip up.</td></tr>
           <tr><td><span class="sw" style="background:#1b1c1f;border:1px solid #444"></span>head</td><td>Dimpled top on the bed.</td></tr>
-          <tr><td><span class="sw" style="background:#ff6a13"></span>safety_clip</td><td>Flat on the bed.</td></tr>
+          <tr><td><span class="sw" style="background:#f2f3f4"></span>safety_clip</td><td>Flat on the bed.</td></tr>
           <tr><td><span class="sw" style="background:#9a9ea6"></span>spring</td><td>Buy, don't print: compression spring about 11 mm OD × 0.8 mm wire × 25 mm long.</td></tr>
           <tr><td><span class="sw" style="background:#55606b"></span>washer</td><td>Flat, in TPU. Or buy a 22 × 27 × 1 mm silicone washer.</td></tr>
         </tbody>
@@ -213,7 +213,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     lid: { mat: mat({ color: 0xcfd3d8, roughness: 0.5 }) },
     plunger: { mat: mat({ color: 0x2b2d32, roughness: 0.5, metalness: 0.05, envMapIntensity: 0.5 }), parent: moving },
     head: { mat: mat({ color: 0x1b1c1f, roughness: 0.75 }), parent: moving },
-    safety_clip: { mat: mat({ color: 0xff6a13, roughness: 0.4, emissive: 0xff3a00, emissiveIntensity: 0.1 }) },
+    safety_clip: { mat: mat({ color: 0xf2f3f4, roughness: 0.45, clearcoat: 0.2 }) },
     washer: { mat: mat({ color: 0x55606b, roughness: 0.8 }) },
     cap_thread: { mat: mat({ color: 0xff6a13, roughness: 0.35, emissive: 0xff3a00, emissiveIntensity: 0.35, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }) },
   };
@@ -240,10 +240,10 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   const powderPts = [[0, FLOOR_T], [LAND_R, FLOOR_T], [CHAMBER_R - 0.1, FUNNEL_TOP_Z], [CHAMBER_R - 0.1, LID_Z - 4], [0, LID_Z - 4]].map(p => new THREE.Vector2(p[0], p[1]));
   // solid, grainy powder that fills the whole chamber (floor funnel up to the lid)
   const grainC = document.createElement('canvas'); grainC.width = grainC.height = 256;
-  { const g = grainC.getContext('2d'); g.fillStyle = '#ff6a13'; g.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 9000; i++) { g.fillStyle = Math.random() > .5 ? 'rgba(255,200,140,.45)' : 'rgba(150,40,0,.35)'; g.fillRect(Math.random() * 256, Math.random() * 256, 1.6, 1.6); } }
+  { const g = grainC.getContext('2d'); g.fillStyle = '#f4f4f1'; g.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 9000; i++) { g.fillStyle = Math.random() > .5 ? 'rgba(255,255,255,.7)' : 'rgba(150,155,165,.35)'; g.fillRect(Math.random() * 256, Math.random() * 256, 1.6, 1.6); } }
   const grainTex = new THREE.CanvasTexture(grainC); grainTex.encoding = THREE.sRGBEncoding; grainTex.wrapS = grainTex.wrapT = THREE.RepeatWrapping; grainTex.repeat.set(6, 3);
-  const powderMat = mat({ map: grainTex, roughness: 1, emissive: 0xff4a00, emissiveIntensity: 0.18 });
+  const powderMat = mat({ map: grainTex, roughness: 1, emissive: 0xffffff, emissiveIntensity: 0.08 });
   const powder = new THREE.Mesh(new THREE.LatheGeometry(powderPts, 96), powderMat);
   powder.rotation.x = Math.PI / 2; powder.visible = true; capG.add(powder);
 
@@ -380,7 +380,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   for (let i = 0; i < NP; i++) pPos[i * 3 + 2] = 9999;
   const pGeo = new THREE.BufferGeometry(); pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
   const dotC = document.createElement('canvas'); dotC.width = dotC.height = 64; { const g = dotC.getContext('2d'), r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, '#fff'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); }
-  const pts = new THREE.Points(pGeo, new THREE.PointsMaterial({ color: 0xff7a22, size: 1.6, map: new THREE.CanvasTexture(dotC), transparent: true, depthWrite: false }));
+  const pts = new THREE.Points(pGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, map: new THREE.CanvasTexture(dotC), transparent: true, depthWrite: false }));
   pts.frustumCulled = false; pts.renderOrder = 2; cad.add(pts); mats.push(pts.material);   // cut with the cutaway too
   const bodyR = z => {  // inner radius of the bottle at height z (bottle frame)
     if (z > -17.5) return 10.6;
@@ -560,7 +560,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
   }
 
   const slosh = { u: new THREE.Vector3(0, 1, 0), v: new THREE.Vector3() };
-  const WATER_C = new THREE.Color(0xdcecf3), MIX_C = new THREE.Color(0xff5a0a);
+  const WATER_C = new THREE.Color(0xdcecf3), MIX_C = new THREE.Color(0xf1f4f7);   // white powder makes the water slightly cloudy
   const clock = new THREE.Clock();
   (function frame() {
     const dt = Math.min(clock.getDelta(), 0.1);
@@ -628,7 +628,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
       // Real pre-workout needs roughly 10-30 s of shaking; the animation compresses that into one 4.5 s shake.
       const wetShare = alive ? 0.3 + 0.7 * wetN / alive : 1;
       mix = Math.min(emitted / NP, mix + dt * (0.015 + 0.45 * shakeLevel) * wetShare);
-      waterMat.color.copy(WATER_C).lerp(MIX_C, Math.min(1, mix * 1.15)); waterMat.opacity = 0.1 + 0.78 * mix;
+      waterMat.color.copy(WATER_C).lerp(MIX_C, Math.min(1, mix * 1.15)); waterMat.opacity = 0.1 + 0.4 * mix;
       if ((shake || hand.active) && released) say(mix > 0.995 ? 'Fully mixed · keep shaking or unscrew to drink' : `Shaking · ${Math.round(mix * 100)}% dissolved`, true);
     }
     if (camGoal) {
