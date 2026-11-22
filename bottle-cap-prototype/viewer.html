@@ -292,7 +292,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     const sp = v => { if ('letterSpacing' in g) g.letterSpacing = v; };
     // matte black base with a soft spotlight behind the front panel
     g.fillStyle = DARK; g.fillRect(0, 0, W, H);
-    const glow = g.createRadialGradient(cx, H * 0.45, 40, cx, H * 0.45, 760); glow.addColorStop(0, 'rgba(47,107,255,.35)'); glow.addColorStop(1, 'rgba(47,107,255,0)');
+    const glow = g.createRadialGradient(cx, H * 0.45, 40, cx, H * 0.45, 760); glow.addColorStop(0, 'rgba(47,107,255,0)'); glow.addColorStop(1, 'rgba(47,107,255,0)');
     g.fillStyle = glow; g.fillRect(0, 0, W, H);
     // fine diagonal texture
     g.strokeStyle = 'rgba(255,255,255,.025)'; g.lineWidth = 2;
