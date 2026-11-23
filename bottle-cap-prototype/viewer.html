@@ -322,7 +322,22 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
       const y = 360 + k * 210, ix = lx - 300;
       g.strokeStyle = '#fff'; g.fillStyle = '#fff'; g.lineWidth = 10; g.lineCap = 'round'; g.lineJoin = 'round';
       if (k === 0) { g.beginPath(); g.moveTo(ix, y - 60); g.lineTo(ix, y + 30); g.stroke(); g.beginPath(); g.moveTo(ix - 36, y - 4); g.lineTo(ix, y + 36); g.lineTo(ix + 36, y - 4); g.stroke(); g.fillRect(ix - 50, y + 50, 100, 10); }
-      else if (k === 1) { g.beginPath(); g.moveTo(ix - 50, y + 10); for (let q = 0; q < 5; q++) g.lineTo(ix - 50 + 25 * (q + 1), y + (q % 2 ? 10 : -40)); g.stroke(); }
+      else if (k === 1) {   // tilted bottle with motion swooshes
+        g.save(); g.translate(ix - 14, y - 15); g.rotate(-0.38); g.lineWidth = 8;
+        const bw = 22, bt = -18, bb = 50;
+        g.beginPath();
+        g.moveTo(-9, -40); g.lineTo(-9, -30); g.quadraticCurveTo(-bw, -26, -bw, bt);   // neck to left shoulder
+        g.lineTo(-bw, bb - 8); g.quadraticCurveTo(-bw, bb, -bw + 8, bb); g.lineTo(bw - 8, bb); g.quadraticCurveTo(bw, bb, bw, bb - 8);
+        g.lineTo(bw, bt); g.quadraticCurveTo(bw, -26, 9, -30); g.lineTo(9, -40);
+        g.stroke();
+        g.fillRect(-13, -54, 26, 14);   // cap
+        g.restore();
+        g.lineWidth = 7;
+        for (const sgn of [-1, 1]) for (const r of [56, 72]) {
+          g.beginPath(); g.arc(ix - 14, y - 15, r, sgn < 0 ? Math.PI + 0.5 : -0.25, sgn < 0 ? Math.PI + 1.05 : 0.3); g.stroke();
+        }
+        g.lineWidth = 10;
+      }
       else dumbbell(g, ix, y - 10, 120, '#fff', -0.3);
       g.textAlign = 'left'; g.font = `900 78px ${DISPLAY}`; sp('5px'); g.fillStyle = '#fff'; g.fillText(`${k + 1}  ${t}`, lx - 200, y + 18);
       g.textAlign = 'center';
