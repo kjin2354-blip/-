@@ -83,6 +83,17 @@ tr.us { background: var(--accent); }
 .mval { font-family: var(--display); font-weight: 900; font-size: 88px; line-height: 1; }
 .mval .k { color: var(--accent); }
 
-/* motion */
-@keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
-.in { animation: rise 600ms cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i, 0) * 120ms); }
+/* motion: everything arrives within about a second */
+@keyframes rise { from { opacity: 0; transform: translateY(40px) scale(.96); filter: blur(10px); } to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
+@keyframes sweep { from { opacity: 0; transform: translateX(-80px); filter: blur(8px); } to { opacity: 1; transform: translateX(0); filter: blur(0); } }
+@keyframes pop { 0% { opacity: 0; transform: scale(.7); } 70% { opacity: 1; transform: scale(1.06); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes glow { from { box-shadow: 0 0 0 0 rgba(184,242,58,.6); } to { box-shadow: 0 0 0 28px rgba(184,242,58,0); } }
+@keyframes hero { from { opacity: 0; transform: translateX(220px) rotate(5deg); filter: blur(12px); } to { opacity: 1; transform: translateX(0) rotate(0deg); filter: blur(0); } }
+@keyframes grow { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+.in { animation: rise 700ms cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(150ms + var(--i, 0) * 110ms); }
+.head .eyebrow { animation: sweep 500ms cubic-bezier(.2,.8,.2,1) both; }
+.head h2 { animation: sweep 650ms cubic-bezier(.2,.8,.2,1) 80ms both; }
+.card.hot.in { animation: rise 700ms cubic-bezier(.2,.8,.2,1) both, glow 900ms ease-out both; animation-delay: calc(150ms + var(--i, 0) * 110ms), calc(700ms + var(--i, 0) * 110ms); }
+.hero-in { animation: hero 1000ms cubic-bezier(.2,.8,.2,1) both; }
+.sam { animation: grow 600ms cubic-bezier(.2,.8,.2,1) 350ms both; transform-origin: 0 100%; }
+.som { animation: grow 600ms cubic-bezier(.3,1.4,.5,1) 650ms both; transform-origin: 0 100%; }
