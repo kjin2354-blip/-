@@ -98,7 +98,7 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     <div>
       <div class="eyebrow">Printable prototype · v1.2 · PCO 1881</div>
       <h1>Pop Off</h1>
-      <p class="tagline">Grab. Pop. Go.</p>
+      <p class="tagline">Grab, pop, and go.</p>
       <p>These are the actual print files, not a concept render. Pressing the head drives an X-shaped blade through a foil disc. The slanted edges puncture the centre first and then cut outward, so the foil opens as four flaps that stay attached. A spring then lifts the blade back out so the opening is clear for the powder.</p>
     </div>
 
@@ -300,29 +300,19 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     // fine diagonal texture
     g.strokeStyle = 'rgba(255,255,255,.025)'; g.lineWidth = 2;
     for (let x = -H; x < W; x += 22) { g.beginPath(); g.moveTo(x, H); g.lineTo(x + H, 0); g.stroke(); }
-    // top and bottom bands that run all the way around
+    // thin top line that runs all the way around
     g.fillStyle = ORANGE; g.fillRect(0, 34, W, 8);
-    g.fillRect(0, H - 128, W, 128);
-    g.fillStyle = DARK; g.font = `900 64px ${DISPLAY}`; g.textBaseline = 'middle'; g.textAlign = 'left'; sp('10px');
-    const band = 'PRESS  •  SHAKE  •  LIFT  •  ';
-    let bx = 20; while (bx < W) { g.fillText(band, bx, H - 62); bx += g.measureText(band).width; }
 
     // --- front panel ---
     g.textAlign = 'center'; g.textBaseline = 'alphabetic';
     // logo: Pop Off pre-workout wordmark with starburst (brand/pop-off-preworkout-dark.png)
     if (logoImg.complete && logoImg.naturalWidth) {
       const lw = 1050, lh = lw * logoImg.naturalHeight / logoImg.naturalWidth;
-      g.drawImage(logoImg, cx - lw / 2, 670 - lh, lw, lh);
+      g.drawImage(logoImg, cx - lw / 2, 720 - lh, lw, lh);
     }
     // tagline
     g.font = `600 52px Barlow, Arial, sans-serif`; sp('7px'); g.fillStyle = ORANGE;
-    g.fillText('GRAB. POP. GO.', cx, 790);
-    // pill
-    g.font = `500 36px "JetBrains Mono", Menlo, monospace`; sp('3px');
-    const pill = '1 SERVING  ·  SEALED IN THE CAP', pw = g.measureText(pill).width + 80;
-    g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 3; g.beginPath();
-    g.moveTo(cx - pw / 2 + 34, 880); g.arcTo(cx + pw / 2, 880, cx + pw / 2, 948, 34); g.arcTo(cx + pw / 2, 948, cx - pw / 2, 948, 34); g.arcTo(cx - pw / 2, 948, cx - pw / 2, 880, 34); g.arcTo(cx - pw / 2, 880, cx + pw / 2, 880, 34); g.stroke();
-    g.fillStyle = 'rgba(255,255,255,.85)'; g.fillText(pill, cx, 927);
+    g.fillText('GRAB, POP, AND GO.', cx, 850);
 
     // --- left side: how it works, with icons ---
     const lx = W * 0.19;
